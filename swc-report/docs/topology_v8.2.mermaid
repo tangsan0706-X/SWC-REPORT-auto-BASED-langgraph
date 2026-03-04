@@ -1,0 +1,267 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize":"11px","primaryColor":"#4A90D9","lineColor":"#666","fontFamily":"Arial"}, "flowchart": {"curve":"basis","nodeSpacing":20,"rankSpacing":30}}}%%
+
+flowchart TB
+
+    %% ═══════════════════════════════════
+    %% FRONTEND
+    %% ═══════════════════════════════════
+    subgraph FE["前端 Frontend (Vue 3 + Element Plus)"]
+        direction LR
+        subgraph FE_UP["上传区"]
+            U1["步骤1: 基本信息表单\nfacts_v2.json"]
+            U2["步骤2: 分区面积\n校验合计=总面积"]
+            U3["步骤3: 文件上传\n必填:措施CSV\n可选:CAD/GIS/PDF"]
+        end
+        subgraph FE_PG["进度看板"]
+            PG1["DAG实时进度\n18步依赖图"]
+            PG2["章节状态卡片\nCh1~8并行状态"]
+            PG3["SSE日志流"]
+        end
+        subgraph FE_DL["交付区"]
+            DL1["报告摘要卡片\n投资/流失/达标/评分"]
+            DL2["下载\n报告.docx\n措施图.zip\n审计.json"]
+        end
+        U1 --> U2 --> U3
+    end
+
+    %% ═══════════════════════════════════
+    %% BACKEND API
+    %% ═══════════════════════════════════
+    subgraph API["后端API FastAPI (双端口)"]
+        direction LR
+        EP1[":8080 用户端\npipelines/config"]
+        EP2[":8081 管理端\nknowledge/settings"]
+        EP3["SSE进度推送\nDAG步骤回调"]
+        EP4["SQLite server.db"]
+    end
+
+    CLI["CLI模式\nautodl_start.py\nscripts/run.py"]
+
+    %% ═══════════════════════════════════
+    %% INPUT LAYER
+    %% ═══════════════════════════════════
+    subgraph L0["L2 输入层"]
+        direction LR
+        subgraph L0U["用户输入"]
+            F1["facts_v2.json\n概况+分区+工期"]
+            F2["measures_v2.csv\n已列措施+单价"]
+        end
+        subgraph L0S["系统内置"]
+            F3["soil_map.json"]
+            F4["price_v2.csv\nfee_rate.json"]
+            F5["legal_refs.json"]
+            F6["template.docx\n229变量"]
+            F10["ChromaDB\n范文+图集RAG"]
+            F11["measure_library.json\n35种标准措施"]
+            F12["measure_symbols.py\n35样式+12断面"]
+        end
+        subgraph L0O["可选文件"]
+            F7["CAD总平面图\nDXF/DWG"]
+            F8["GIS数据\nGeoJSON/SHP"]
+            F9["PDF/图集"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% PREPROCESS LAYER
+    %% ═══════════════════════════════════
+    subgraph L3["L3 预处理层"]
+        direction LR
+        subgraph L3CAD["CAD解析管线 (~4000行)"]
+            CAD1["cad.py\nDWG/DXF→PNG\n3级回退"]
+            CAD2["cad_base_renderer.py\nparse_dxf_geometry()\n→CadGeometry\n图层关键词分类\n颜色提取(ACI)"]
+            CAD3["cad_feature_analyzer.py\n8步特征分析\n7级红线回退\n颜色辅助分类\nACI2→建筑\nACI1→红线"]
+            CAD4["site_model.py\nSiteModelBuilder\n4阶段融合\nezdxf 0.85\nGIS 0.95\nMETA 0.50\nVL 0.60-0.80"]
+            CAD1 --> CAD2 --> CAD3 --> CAD4
+        end
+        RAG["RAG构建\nChromaDB\nbge-m3 embed"]
+        GIS["GIS解析\ngeopandas"]
+        VL_A["VL空间分析\nQwen2.5-VL-72B\n5轮验证"]
+    end
+
+    %% ═══════════════════════════════════
+    %% STATE MACHINE
+    %% ═══════════════════════════════════
+    subgraph L4["L4 全局状态机 GlobalState (ContextVar隔离)"]
+        direction LR
+        S1["Static\nmeta/soil/price\nfee/legal/lib\n(只读)"]
+        S2["ETL\nzones/rag_ready\ncad_geometry\ncad_site_features\nsite_model\nmeasure_layout"]
+        S3["Calc\nearthwork\nerosion_df\ncost_summary\nbenefit"]
+        S4["TplCtx\n229标签\n(write-once)"]
+        S5["Draft\n{tag:text}\n各章不同key"]
+        S6["Measures\nexisting+planned\n(Step6后只读)"]
+        S7["Flags\nretry/scores\naudit/adapter"]
+    end
+
+    %% ═══════════════════════════════════
+    %% PROCESSING LAYER - DAG
+    %% ═══════════════════════════════════
+    subgraph L5["L5 处理层 — 18步DAG流水线"]
+        direction TB
+
+        subgraph INIT["初始化 (串行)"]
+            P1["1_load_config\ninit_state()"]
+            P2["2_preprocess\nRAG check"]
+            P1 --> P2
+        end
+
+        subgraph PARA["并行组A (3步同时)"]
+            direction LR
+            P3["3_spatial\nCAD+GIS+VL\n→SiteModel"]
+            P4["4_earthwork\n挖填平衡"]
+            P5["5_erosion\nRUSLE预测"]
+        end
+
+        subgraph PLAN["规划+计算 (串行链)"]
+            P6["6_planner\n措施规划师Agent\n6工具 max10轮\n+default补充"]
+            P7["7_cost\n6层费率\n造价估算"]
+            P8["8_benefit\n6项效益指标"]
+            P9["9_assemble\n7分区→229标签"]
+            P95["9.5_adapter\n数据适配器Agent\n6工具 max2轮\n校验+回调修复"]
+            P6 --> P7 --> P8 --> P9 --> P95
+        end
+
+        subgraph PARB["并行组B (3步同时)"]
+            direction LR
+            P10["10_writer\n撰稿Agent\n4工具\nPh1:7章并行(4w)\nPh2:Ch1串行"]
+            P11["11_charts\nmatplotlib\n4数据图表"]
+            P12["12_drawings\n绘图双引擎\nDrawingAgent→\nMeasureMapRenderer"]
+        end
+
+        subgraph AUDIT["审计集群 (串行)"]
+            P13["13_render\ndocxtpl 3阶段\n变量→表格→图插入"]
+            P14["14_audit\n审计Agent 3工具\n4维评分(加权)"]
+            P15["15_retry\n章节级重写\n多章并行+AgentContext"]
+            P16["16_final\n完整性检查"]
+            P17["17_package\n.docx+.zip+.json"]
+            P13 --> P14 --> P15 --> P16 --> P17
+        end
+
+        P2 --> P3 & P4 & P5
+        P3 --> P6
+        P5 --> P6
+        P4 --> P7
+        P95 --> P10 & P11 & P12
+        P10 & P11 & P12 --> P13
+    end
+
+    %% ═══════════════════════════════════
+    %% PLACEMENT ENGINE
+    %% ═══════════════════════════════════
+    subgraph PE["PlacementEngine v2 (~2700行)"]
+        direction TB
+        subgraph PE_CORE["6阶段流水线"]
+            PE1["Phase1: Place\n13专用函数\n7通用策略回退"]
+            PE2["Phase2: Linkage\n9条联动规则\nauto_create目标"]
+            PE3["Phase3: Collision\nV2 4级+距离+互斥"]
+            PE4["Phase4: Optimize\n全局二次优化"]
+            PE5["Phase5: Summary\n统计+水文tier"]
+            PE6["Phase6: Clamp\n边界裁剪+建筑避让"]
+            PE1 --> PE2 --> PE3 --> PE4 --> PE5 --> PE6
+        end
+        subgraph PE_SUB["子模块"]
+            direction LR
+            PE_CL["classifier.py\nclassify_measure\n3级回退"]
+            PE_HY["hydro_adapter.py\n3级水文降级\nTier1→2→3"]
+            PE_PL["placers.py\nGeometryClipper\n+PLACER_REGISTRY"]
+            PE_LK["linkage.py\nLinkageResolver\n8联动规则"]
+            PE_CO["collision.py\nCollisionResolverV2\n4级碰撞"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% RENDERING SYSTEM
+    %% ═══════════════════════════════════
+    subgraph RENDER["绘图渲染系统"]
+        direction TB
+        subgraph RENDER_A["路线A: Drawing Agent"]
+            DA1["DrawingPlan JSON\n4级JSON回退解析"]
+            DA2["DrawingRenderer\n4图型渲染\nPNG+DXF双输出"]
+            DA1 --> DA2
+        end
+        subgraph RENDER_B["路线B: MeasureMapRenderer"]
+            MM1["CAD底图\nCadBaseMapRenderer"]
+            MM2["措施叠加\nPlacementResult渲染"]
+            MM3["专业装饰\n指北针/比例尺/图例"]
+            MM1 --> MM2 --> MM3
+        end
+        RENDER_A -->|"失败(<2张)"| RENDER_B
+    end
+
+    %% ═══════════════════════════════════
+    %% LLM RESILIENCE
+    %% ═══════════════════════════════════
+    subgraph L55["L5.5 LLM韧性层"]
+        direction LR
+        LLM1["LLMClient\n超时120s\n重试2次\n指数退避"]
+        LLM2["消息窗口\nL1:结构化摘要(0ms)\nL2:LLM摘要(可选)\nL3:48K硬截断"]
+        LLM3["工具结果\n8000字截断"]
+    end
+
+    %% ═══════════════════════════════════
+    %% GPU LAYER
+    %% ═══════════════════════════════════
+    subgraph GPU["GPU资源 (4×A800-80G)"]
+        direction LR
+        GPU1["GPU 0-1 (TP=2)\nQwen2.5-72B-GPTQ-Int8\n:8000 Text LLM\n5 Agent共用"]
+        GPU2["GPU 2-3 (TP=2)\nQwen2.5-VL-72B-GPTQ-Int8\n:8001 VL Model\nCAD分析+VL验证"]
+    end
+
+    %% ═══════════════════════════════════
+    %% GEOMETRY LIB
+    %% ═══════════════════════════════════
+    subgraph GEO["geo_utils.py 纯Python几何库 (~850行)"]
+        direction LR
+        GEO1["基础: dist/area/centroid\n凸包: Graham scan\n凹包: KNN"]
+        GEO2["碰撞: intersection\npoint_in_polygon\npolygons_overlap"]
+        GEO3["裁剪: Sutherland-Hodgman\nCohen-Sutherland\n偏移/缩放/采样"]
+    end
+
+    %% ═══════════════════════════════════
+    %% OUTPUT LAYER
+    %% ═══════════════════════════════════
+    subgraph L6["L6 存储交付层"]
+        direction LR
+        O1["report.docx\n(50KB-20MB)"]
+        O2["措施图包\n≥10张PNG\nzone_boundary\nmeasure_layout\nzone_detail×N\ntypical_section×N"]
+        O3["audit.json\n4维评分\n章节分数"]
+        O4["DXF附图\n可编辑向量"]
+    end
+
+    %% ═══════════════════════════════════
+    %% CONNECTIONS
+    %% ═══════════════════════════════════
+    FE --> API
+    CLI --> L5
+    API --> L5
+    L0 --> L5
+    L3 --> L4
+    L4 <--> L5
+    L5 --> L6
+    L55 -.-> L5
+    GPU -.-> L5
+    GPU -.-> L3
+    PE -.-> P12
+    PE -.-> RENDER
+    GEO -.-> PE
+    GEO -.-> L3
+    CAD4 -.-> PE
+
+    %% ═══════════════════════════════════
+    %% STYLES
+    %% ═══════════════════════════════════
+    classDef agent fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef calc fill:#FFF3E0,stroke:#E65100,stroke-width:1px
+    classDef cad fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef state fill:#F3E5F5,stroke:#6A1B9A,stroke-width:1px
+    classDef engine fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+    classDef gpu fill:#ECEFF1,stroke:#37474F,stroke-width:1px
+    classDef output fill:#FFFDE7,stroke:#F57F17,stroke-width:1px
+
+    class P6,P10,P14,P95 agent
+    class P4,P5,P7,P8 calc
+    class CAD1,CAD2,CAD3,CAD4 cad
+    class S1,S2,S3,S4,S5,S6,S7 state
+    class PE1,PE2,PE3,PE4,PE5,PE6 engine
+    class GPU1,GPU2 gpu
+    class O1,O2,O3,O4 output
