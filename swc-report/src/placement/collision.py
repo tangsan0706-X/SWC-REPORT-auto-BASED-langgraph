@@ -187,6 +187,15 @@ class CollisionResolverV2(CollisionResolver):
             return result
 
         for placed in self._placed:
+            # 不同分区的措施不做几何碰撞检测 (边缘措施常自然相邻)
+            if result.zone_id and placed.zone_id and result.zone_id != placed.zone_id:
+                continue
+
+            # 同分区 LINE+LINE 不做碰撞检测 (排水沟+围挡可沿同一边共存)
+            if (result.measure_type == MeasureType.LINE
+                    and placed.measure_type == MeasureType.LINE):
+                continue
+
             old_poly = self._to_polygon(placed)
             if not old_poly or len(old_poly) < 3:
                 continue

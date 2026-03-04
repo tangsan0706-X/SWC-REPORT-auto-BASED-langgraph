@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.geo_utils import (
     shoelace_area, polyline_length, polygon_centroid,
-    polygons_overlap,
+    polygons_overlap, clip_polyline,
 )
 from src.site_model import SiteModel, ZoneModel
 from .types import MeasureType, Strategy, PlacementResult
@@ -73,7 +73,10 @@ class PlacementEngine:
                     bbox=zone_bounds,
                 )
             else:
-                return None
+                # Fallback: 从边界生成临时分区
+                zone = self._create_fallback_zone(zone_id)
+                if zone is None:
+                    return None
 
         # 分类 → 策略
         mtype = classify_measure(measure_name, unit)
@@ -106,6 +109,9 @@ class PlacementEngine:
 
         if result.skipped:
             return None
+
+        # Phase 3.5: 边界 clamp — 确保措施在场地边界内
+        result = self._clamp_to_boundary(result)
 
         # 注册
         key = f"{zone_id}::{measure_name}"
@@ -238,6 +244,143 @@ class PlacementEngine:
         if result is not None and not result.skipped:
             return result.to_legacy_dict()
         return None
+
+    def _create_fallback_zone(self, zone_id: str) -> Optional[ZoneModel]:
+        """从场地边界生成一个临时分区 (用于未被 CAD 识别的分区)。
+
+        策略: 在边界内未被已有分区占据的区域, 划分一个子矩形。
+        使用确定性哈希确保同一 zone_id 总是得到相同位置。
+        """
+        boundary = self._model.boundary
+        if not boundary or not boundary.polyline or len(boundary.polyline) < 3:
+            return None
+
+        bx = [p[0] for p in boundary.polyline]
+        by = [p[1] for p in boundary.polyline]
+        x_min, x_max = min(bx), max(bx)
+        y_min, y_max = min(by), max(by)
+        w = x_max - x_min
+        h = y_max - y_min
+
+        if w < 1 or h < 1:
+            return None
+
+        # 已有分区的质心列表 (用于避免重叠)
+        existing_centroids = []
+        for z in self._model.zones.values():
+            existing_centroids.append(z.centroid)
+
+        # 确定性偏移: 根据 zone_id 的哈希选择角落
+        seed = sum(ord(c) for c in zone_id) % 4
+        margin = 0.1  # 10% 内缩
+        sub_w = w * 0.3
+        sub_h = h * 0.3
+
+        corners = [
+            (x_min + w * margin, y_min + h * margin),                       # 左下
+            (x_max - w * margin - sub_w, y_min + h * margin),               # 右下
+            (x_min + w * margin, y_max - h * margin - sub_h),               # 左上
+            (x_max - w * margin - sub_w, y_max - h * margin - sub_h),       # 右上
+        ]
+
+        # 选择离已有分区质心最远的角落
+        best_corner = corners[seed]
+        if existing_centroids:
+            def min_dist(corner):
+                return min(
+                    math.hypot(corner[0] + sub_w/2 - c[0],
+                               corner[1] + sub_h/2 - c[1])
+                    for c in existing_centroids
+                )
+            # 排序: 距已有分区最远的优先
+            ranked = sorted(corners, key=min_dist, reverse=True)
+            best_corner = ranked[seed % len(ranked)]
+
+        cx, cy = best_corner
+        polygon = [
+            (cx, cy), (cx + sub_w, cy),
+            (cx + sub_w, cy + sub_h), (cx, cy + sub_h),
+        ]
+        centroid = (cx + sub_w / 2, cy + sub_h / 2)
+        bbox = (cx, cy, cx + sub_w, cy + sub_h)
+
+        logger.info(f"Fallback zone created for '{zone_id}': bbox={tuple(round(b,1) for b in bbox)}")
+        return ZoneModel(
+            zone_id=zone_id,
+            polygon=polygon,
+            area_m2=sub_w * sub_h,
+            centroid=centroid,
+            bbox=bbox,
+        )
+
+    def _clamp_to_boundary(self, result: PlacementResult) -> PlacementResult:
+        """将超出场地边界的措施坐标裁剪/拉回场地内。
+
+        对 polyline 使用 Cohen-Sutherland 裁剪 (保留在边界内的线段部分)。
+        对 polygon/points 使用逐点 clamp (5% 内缩)。
+        """
+        boundary = self._model.boundary
+        if not boundary or not boundary.polyline or len(boundary.polyline) < 3:
+            return result
+
+        bx = [p[0] for p in boundary.polyline]
+        by = [p[1] for p in boundary.polyline]
+        x_min, x_max = min(bx), max(bx)
+        y_min, y_max = min(by), max(by)
+        margin_x = (x_max - x_min) * 0.03
+        margin_y = (y_max - y_min) * 0.03
+        clip_bounds = (x_min + margin_x, y_min + margin_y,
+                       x_max - margin_x, y_max - margin_y)
+
+        def clamp_pts(pts):
+            if not pts:
+                return pts
+            x_lo, y_lo, x_hi, y_hi = clip_bounds
+            clamped = False
+            out = []
+            for x, y in pts:
+                nx = max(x_lo, min(x_hi, x))
+                ny = max(y_lo, min(y_hi, y))
+                if nx != x or ny != y:
+                    clamped = True
+                out.append((nx, ny))
+            return out if clamped else pts
+
+        changed = False
+
+        # Polyline: 用线段裁剪而非逐点 clamp
+        if result.polyline and len(result.polyline) >= 2:
+            segments = clip_polyline(result.polyline, clip_bounds)
+            if segments:
+                # 选择最长的裁剪段
+                best = max(segments, key=lambda s: polyline_length(s))
+                if best != result.polyline:
+                    result.polyline = best
+                    changed = True
+            else:
+                # 全部在边界外, clamp 到中心点
+                result.polyline = clamp_pts(result.polyline)
+                changed = True
+
+        if result.polygon:
+            new_pg = clamp_pts(result.polygon)
+            if new_pg is not result.polygon:
+                result.polygon = new_pg
+                changed = True
+        if result.points:
+            new_pp = clamp_pts(result.points)
+            if new_pp is not result.points:
+                result.points = new_pp
+                changed = True
+
+        if changed:
+            # 重新计算 label_anchor
+            coords = result.polyline or result.polygon or result.points
+            if coords and len(coords) >= 1:
+                mid = len(coords) // 2
+                result.label_anchor = coords[mid]
+
+        return result
 
     def has_precomputed(self) -> bool:
         """是否有预计算结果。"""

@@ -128,6 +128,14 @@ class CadFeatureAnalyzer:
             features.cluster_bounds = self._bounds  # 聚类过滤后的边界
 
             features.boundary_polyline = self._extract_boundary()
+            # 确保红线闭合: 如果首尾不连接, 追加首点
+            if features.boundary_polyline and len(features.boundary_polyline) >= 3:
+                first = features.boundary_polyline[0]
+                last = features.boundary_polyline[-1]
+                gap = math.hypot(first[0] - last[0], first[1] - last[1])
+                if gap > 0.01:
+                    features.boundary_polyline.append(first)
+                    logger.debug(f"红线闭合修补: gap={gap:.2f}m, 追加首点")
             features.boundary_segments = self._extract_boundary_segments()
             features.road_edges = self._extract_road_edges()
             features.building_footprints = self._classify_areas("building", self._buildings)
