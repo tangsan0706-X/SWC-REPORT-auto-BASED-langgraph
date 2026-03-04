@@ -1,0 +1,606 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize":"12px","primaryColor":"#4A90D9","lineColor":"#666","fontFamily":"Arial"}, "flowchart": {"curve":"basis","nodeSpacing":25,"rankSpacing":35}}}%%
+
+flowchart TB
+
+    %% ═══════════════════════════════════
+    %% FRONTEND
+    %% ═══════════════════════════════════
+    subgraph FE["🖥️ 前端 Frontend (Vue 3 + Element Plus)"]
+        direction LR
+        subgraph FE_UP["📤 上传区"]
+            U1["步骤1: 基本信息表单\n项目名/地点/工期/投资\n自动生成facts.json"]
+            U2["步骤2: 分区面积填写\n建构筑物/道路/绿化/临时\n前端校验合计=总面积"]
+            U3["步骤3: 文件上传\n必填: 已列措施CSV\n可选: CAD/GIS/PDF/图集"]
+        end
+        subgraph FE_PG["⏳ 进度看板"]
+            PG1["DAG实时进度\n18步依赖图可视化\n并行步骤同时推进"]
+            PG2["章节状态卡片\nCh1~8各章当前状态\n并行生成进度"]
+            PG3["日志流\nSSE实时推送"]
+        end
+        subgraph FE_DL["📥 交付区"]
+            DL1["报告摘要卡片\n总投资/流失量/达标/审计评分"]
+            DL2["下载按钮\n报告书.docx\n措施图包.zip\n审计日志.json"]
+        end
+        U1 --> U2 --> U3
+    end
+
+    %% ═══════════════════════════════════
+    %% BACKEND API
+    %% ═══════════════════════════════════
+    subgraph API["🔌 后端API FastAPI (双端口)"]
+        direction LR
+        EP1[":8080 用户端\npipelines/config/vision"]
+        EP2[":8081 管理端\nknowledge/settings"]
+        EP3["SSE进度推送\n/api/pipelines/id/events\nDAG步骤状态回调"]
+        EP4["SQLite server.db\n运行记录+日志"]
+    end
+
+    %% ═══════════════════════════════════
+    %% CLI MODE
+    %% ═══════════════════════════════════
+    CLI["🖥️ CLI 模式\npython autodl_start.py --cli\npython scripts/run.py -v\nDAG/线性双模式可切换"]
+
+    %% ═══════════════════════════════════
+    %% INPUT LAYER
+    %% ═══════════════════════════════════
+    subgraph L0["📥 输入层"]
+        direction LR
+        subgraph L0U["👤 用户输入"]
+            F1["facts_v2.json\n概况+分区+工期+目标"]
+            F2["measures_v2.csv\n已列措施+单价+合价"]
+        end
+        subgraph L0S["🏭 系统内置"]
+            F3["soil_map.json"]
+            F4["price_v2.csv\nfee_rate.json"]
+            F5["legal_refs.json"]
+            F6["template.docx"]
+            F10["范文语料库\nChromaDB持久化\n(chromadb/)"]
+            F11["measure_library.json\n35种标准措施"]
+            F12["measure_symbols.py\n措施符号/样式/断面模板"]
+        end
+        subgraph L0O["📎 可选"]
+            F7["CAD .dwg/.dxf"]
+            F8["GIS .shp/.geojson"]
+            F9["PDF 附件"]
+            F13["标准图集\ndata/atlas/ (20文件)\nPNG/JPG/PDF/DWG"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% SPATIAL ANALYSIS LAYER
+    %% ═══════════════════════════════════
+    subgraph L1["⚙️ 空间分析层 (Step 1-3)"]
+        direction TB
+
+        subgraph L1_PRE["📦 基础预处理"]
+            direction LR
+            P1["📐 CAD转PNG\nezdxf DXF渲染\nODA DWG转换"]
+            P2{"有GIS?"}
+            P2 -->|Yes| P3["geopandas\n读取SHP/GeoJSON\n→ GeoDataFrame"]
+            P2 -->|No| P4["直接用facts.zones\n矩形近似布局"]
+            P5["📚 RAG补充\n查询范文库"]
+        end
+
+        subgraph L1_VL["👁️ VL Agent 空间分析 (Qwen2.5-VL-72B)"]
+            direction LR
+            VL1["CAD图纸分析\n建筑位置/道路走向\n场地边界/高程信息"]
+            VL2["空间布局JSON\nbuildings[]/roads[]\nzones[]/slopes[]\ndrainage_direction"]
+        end
+
+        subgraph L1_ATLAS["📖 图集RAG索引 (atlas_rag.py)"]
+            direction LR
+            AR1["VL分析图集图片\n提取绘图规范\n图例/标注/配色/比例"]
+            AR2["ChromaDB存储\natlas_db/\n按措施类型检索"]
+        end
+
+        subgraph L1_MERGE["🔗 空间布局合并"]
+            SM1["spatial_analyzer\n综合: VL空间+GIS精确\n→ ETL.spatial_layout\n→ ETL.gis_gdf"]
+        end
+
+        L1_PRE --> L1_VL
+        L1_VL --> L1_MERGE
+        P3 --> L1_MERGE
+    end
+
+    %% ═══════════════════════════════════
+    %% CONTEXT MANAGEMENT
+    %% ═══════════════════════════════════
+    subgraph CTXMGR["🔒 ContextVar 状态隔离层 (src/context.py)"]
+        direction LR
+        CTX1["_ctx_state: ContextVar\n每线程独立State引用"]
+        CTX2["_ctx_atlas_rag: ContextVar\n每线程独立RAG实例"]
+        CTX3["_ctx_output_dir: ContextVar\n每线程独立输出路径"]
+        CTX4["AgentContext\nwith语句自动设置/重置\ntoken-based嵌套安全"]
+    end
+
+    %% ═══════════════════════════════════
+    %% LLM RESILIENCE LAYER (v8.1 新增)
+    %% ═══════════════════════════════════
+    subgraph LLMRL["🛡️ LLM 韧性层 (src/agents/base.py) — v8.1"]
+        direction LR
+        subgraph LLMC["LLMClient"]
+            LLMC1["超时控制\nhttpx timeout=120s\n环境变量: LLM_TIMEOUT"]
+            LLMC2["重试+指数退避\nmax_retries=2\n1s → 2s → raise\n环境变量: LLM_MAX_RETRIES"]
+        end
+        subgraph CTXWIN["消息窗口管理"]
+            CW1["L1: 结构化摘要\n纯Python提取\n工具名/数值/错误\n延迟: 0ms"]
+            CW2["L2: LLM摘要\n轻量调用256tokens\nCONTEXT_SUMMARIZE_LLM\n延迟: 2-5s"]
+            CW3["L3: 硬截断兜底\n上限48K字符\n保留head+tail\n始终生效"]
+        end
+        TTRUNC["工具结果截断\nTOOL_RESULT_MAX_CHARS\n=8000字符"]
+    end
+
+    %% ═══════════════════════════════════
+    %% GLOBAL STATE
+    %% ═══════════════════════════════════
+    subgraph L2["🧠 全局状态机 GlobalState (7分区)"]
+        direction LR
+        S1["Static\nmeta,soil,price\nfee,legal\nmeasure_lib\nmeasures_existing"]
+        S2["ETL\nzones,rag_ready\nsite_desc\nspatial_layout\ngis_gdf\nmeasure_layout"]
+        S3["Calc\nearthwork\nerosion_df\ncost_summary\nbenefit"]
+        S4["TplCtx\n229+标签dict\n含措施图占位标签"]
+        S5["Draft\nchapters\nid→text\n线程安全: 各章key不同"]
+        S6["Flags\nretry_count\nfailed_list\naudit_score\naudit_log\nadapter_result"]
+        S7["Measures\nfull_measures_list\n已有+新增合并\n含空间布置字段"]
+    end
+
+    %% ═══════════════════════════════════
+    %% DAG SCHEDULER
+    %% ═══════════════════════════════════
+    subgraph DAG["🗺️ DAG调度器 (src/dag_scheduler.py)"]
+        direction LR
+        DAG1["StepNode\nname/func/depends_on\nstatus/error/critical"]
+        DAG2["DAGScheduler\nThreadPoolExecutor\nFIRST_COMPLETED策略\n就绪检测→提交→等待"]
+        DAG3["失败传播\n上游失败→下游skip\nBFS级联标记"]
+        DAG4["on_progress回调\n实时状态推送\n→SSE前端"]
+    end
+
+    %% ═══════════════════════════════════════════════════
+    %% PROCESSING LAYER
+    %% ═══════════════════════════════════════════════════
+    subgraph PROC["🔄 处理层 Processing Layer (Step 3-17) — DAG编排 18步"]
+
+        %% ─── PARALLEL GROUP 1: CALC PHASE 1 ───
+        subgraph PAR1["⚡ 并行组A: 基础计算 (Step 3-5 同时执行)"]
+            direction LR
+            C0["📍 空间分析\n(Step 3)"]
+            C1["🏗️ 土方师\n(Step 4)\n挖-剥+覆=净挖\n净挖-填=余方"]
+            C2["🌊 预测师\n(Step 5)\n3时段切分\nRUSLE查表\n分区x时段矩阵"]
+        end
+
+        %% ─── PLANNER ───
+        subgraph PLANNER["🤖 措施规划师 Agent (Step 6)"]
+            direction TB
+            PL_AGENT["Qwen2.5-72B-Instruct\n角色: 水保措施设计专家\n输入: 分区+侵蚀+已有措施\n+空间布局+图集规范\n决策: 措施+数量+空间布置\nAgentContext注入状态"]
+
+            subgraph PL_TOOLS["🧰 规划工具箱 (6个工具)"]
+                direction LR
+                PLT1["measure_library\n标准措施库查询\n按分区类型匹配"]
+                PLT2["quantity_estimator\n工程量估算\n面积x系数"]
+                PLT3["regulation_checker\n地方标准合规\n江苏省水保条例"]
+                PLT4["rag_exemplar\n范文措施方案\n相似项目参考"]
+                PLT5["spatial_context\n空间布局查询\nget_state_or_none()"]
+                PLT6["atlas_reference\n图集绘图规范\nget_atlas_rag()"]
+            end
+
+            PL_OUT["输出: 完整措施清单\n每条含: 名称/分区/类型\n数量/单位/功能\n空间布置: position\ncoverage/direction/note"]
+
+            PL_AGENT --> PL_TOOLS
+            PL_TOOLS --> PL_OUT
+        end
+
+        %% ─── CALC PHASE 2 ───
+        subgraph CALC_P2["🧮 计算Phase2: 基于措施 (Step 7-8)"]
+            direction LR
+            C3["💰 造价师\n(Step 7)\n6层费率叠加\n新增/已有拆分\n独立费+补偿"]
+            C4["📊 效益分析\n(Step 8)\n六指标实现\nvs防治目标"]
+        end
+
+        ASM["🔧 状态装配器 (Step 9)\nCalc结果映射229模板标签"]
+
+        %% ─── DATA ADAPTER (Step 9.5) v8.1 ───
+        subgraph ADAPTER["🔍 数据适配器 Agent (Step 9.5) — v8.1"]
+            direction TB
+            ADP_AGENT["Qwen2.5-72B-Instruct\n角色: 数据适配校验\n校验229标签完整性\n回调修复+reassemble\nmax_callbacks=2\nfallback: _fallback_adapter()"]
+
+            subgraph ADP_TOOLS["🧰 适配器工具箱 (6个工具)"]
+                direction LR
+                ADPT1["validate_completeness\n必填标签遍历校验\n10类/50+标签"]
+                ADPT2["validate_cross_refs\n数值交叉校验\n土方/侵蚀/造价"]
+                ADPT3["rerun_calculator\n重跑指定计算器\nearthwork/erosion\ncost/benefit"]
+                ADPT4["callback_planner\n回调措施规划\n补充缺失措施"]
+                ADPT5["reassemble\n重新状态装配\n更新TplCtx"]
+                ADPT6["get_fix_suggestion\n修复链推导\n依赖顺序排列"]
+            end
+
+            ADP_OUT["输出: 校验报告\nstatus: pass/warn/fail\nvalid_tags / fixed_tags\ncallbacks_made"]
+
+            ADP_AGENT --> ADP_TOOLS
+            ADP_TOOLS --> ADP_OUT
+        end
+
+        %% ─── PARALLEL GROUP 2: GENERATION ───
+        subgraph PAR2["⚡ 并行组B: 生成集群 (Step 10+11+12 同时执行)"]
+            direction TB
+
+            subgraph WRITER["🤖 撰稿智能体 Agent (Step 10)"]
+                direction TB
+                WR_AGENT["Qwen2.5-72B-Instruct\n角色: 水保方案撰稿专家"]
+
+                subgraph WR_PAR["⚡ 内部并行: ThreadPoolExecutor"]
+                    direction LR
+                    WR_P1["Phase1: 7章并行\nCh2→Ch8 同时生成\nmax_workers=WRITER_WORKERS\n各章AgentContext独立"]
+                    WR_P2["Phase2: Ch1串行\n依赖prev_chapter\n读取已完成Draft"]
+                end
+
+                subgraph WR_TOOLS["🧰 撰稿工具箱 (4个工具)"]
+                    direction LR
+                    WRT1["rag_search\n按章节动态构造query\n检索范文对应段落"]
+                    WRT2["calc_lookup\nget_state_or_none()\n查询计算结果"]
+                    WRT3["self_checker\n写完一章后自查\n数字引用是否正确"]
+                    WRT4["prev_chapter\n获取前序章节摘要\n保持上下文连贯"]
+                end
+
+                WR_AGENT --> WR_PAR
+                WR_PAR --> WR_TOOLS
+            end
+
+            B1["📊 数据图表 (Step 11)\nerosion/pie/bar/zone\nmatplotlib → 4张PNG\n_map_lock线程安全"]
+
+            subgraph DRAWING["🤖 绘图智能体 Agent (Step 12)"]
+                direction TB
+                DR_AGENT["Qwen2.5-72B-Instruct\n角色: 措施图绘制工程师\nSL73_6-2015制图标准\n编写matplotlib代码\nmax_turns=8"]
+
+                subgraph DR_PAR["⚡ 内部并行: ThreadPoolExecutor"]
+                    DR_PAR1["所有措施图并行生成\nmax_workers=DRAWING_WORKERS\n每图独立AgentContext\n_draw_single_task()"]
+                end
+
+                subgraph DR_TOOLS["🧰 绘图工具箱 (4个工具)"]
+                    direction LR
+                    DRT1["get_project_data\nget_state_or_none()\n分区/措施/空间布局"]
+                    DRT2["get_style_reference\nSL73_6-2015规范\nget_atlas_rag()"]
+                    DRT3["execute_drawing_code\n沙箱exec matplotlib\nget_output_dir()\n+6层自动代码修正"]
+                    DRT4["verify_image\nVL模型评分≥70通过\nfallback: >10KB通过"]
+                end
+
+                DR_FALLBACK{"产出≥2张?"}
+                DR_FALLBACK -->|No| MM_FALLBACK["MeasureMapRenderer\n确定性Python渲染\n(measure_map.py)"]
+
+                DR_AGENT --> DR_PAR
+                DR_PAR --> DR_TOOLS
+                DR_TOOLS --> DR_FALLBACK
+            end
+        end
+
+        %% ─── RENDER (waits for PAR2) ───
+        subgraph RENDER["🖨️ 渲染 (Step 13 — 等待并行组B全部完成)"]
+            direction TB
+            B2["合并上下文\ntpl_ctx+chapters\n+charts+措施图\n_map_lock保护chart_paths"]
+            B3["渲染引擎 (3阶段)\nPhase1: docxtpl变量替换\nPhase2: python-docx循环表格\nPhase3: 措施图后插入"]
+            B4["完整性检查\n无残留标签 12表非空"]
+            B2 --> B3 --> B4
+        end
+
+        %% ─── AUDIT CLUSTER ───
+        subgraph AUDIT["🔍 审计集群 Audit Cluster (Step 14-15)"]
+            direction TB
+
+            AUDIT_AGENT["🤖 审计智能体 Qwen2.5-72B-Instruct\n角色: 水保方案审查专家\n输入: 全量State+Draft+TplCtx\nAgentContext包裹run+parse"]
+
+            subgraph AUDIT_TOOLS["🧰 审计工具箱 (3个工具)"]
+                direction LR
+                AT1["numeric_validator\nPython硬逻辑\n投资/面积/流失\nget_state_or_none()"]
+                AT2["text_validator\nLLM调用\n摘要数字匹配\n章节间矛盾"]
+                AT3["rag_comparator\n范文对比\n结构合规性\n术语准确性"]
+            end
+
+            subgraph AUDIT_OUTPUT["📋 审计输出"]
+                direction LR
+                AO1["审计报告\n逐章评分\n问题清单\n修改建议"]
+                AO2["综合评分\n0到100分"]
+            end
+
+            subgraph AUDIT_R["🔄 章节级重试 (并行重写) — v8.1修复AgentContext"]
+                R1{"评分>=80?"}
+                R2["生成精准feedback:\nchapter_id+问题原因\n+修改指令"]
+                R3{"retry<3?"}
+                R4["⚡ 并行重写失败章节\nThreadPoolExecutor\n_rewrite_task()包装\n各章独立AgentContext"]
+                R5["强制通过\n写入审计日志\n标记needs_human_review"]
+                R1 -->|60~79| R2
+                R1 -->|<60| R5
+                R2 --> R3
+                R3 -->|Yes| R4
+                R3 -->|No| R5
+            end
+
+            AUDIT_AGENT --> AUDIT_TOOLS
+            AUDIT_TOOLS --> AUDIT_OUTPUT
+            AUDIT_OUTPUT --> R1
+        end
+
+        %% ─── INTER-STEP DEPENDENCIES (DAG) ───
+        PAR1 --> PLANNER
+        PLANNER --> CALC_P2
+        CALC_P2 --> ASM
+        ASM --> ADAPTER
+        ADAPTER --> PAR2
+        PAR2 --> RENDER
+        RENDER --> AUDIT
+
+        %% ─── ADAPTER CALLBACK ARROWS (dotted) ───
+        ADPT4 -.->|回调| PLANNER
+        ADPT3 -.->|重跑| PAR1
+    end
+
+    %% ═══════════════════════════════════
+    %% STORAGE & DELIVERY (Step 16-17)
+    %% ═══════════════════════════════════
+    subgraph L7["📦 存储与交付 (Step 16-17)"]
+        direction LR
+        ST1["本地文件系统\ndata/output/\ndocx+png+json"]
+        ST2["SQLite server.db\n运行记录+日志"]
+        ST3["CLI: 直接输出\nWeb: 下载链接"]
+    end
+
+    FINAL(["📄 报告书.docx + 措施图.png×N + 审计日志.json"])
+
+    %% ═══════════════════════════════════
+    %% GPU ALLOCATION
+    %% ═══════════════════════════════════
+    GPU["🎮 GPU分配 4×A800-80G\n─────────────────────\nvLLM实例1 (GPU 0-1, TP=2)\nQwen2.5-72B-Instruct-GPTQ-Int8\nport 8000 | 规划/撰稿/适配/审计/绘图\ncontinuous batching并发安全\n─────────────────────\nvLLM实例2 (GPU 2-3, TP=2)\nQwen2.5-VL-72B-Instruct-GPTQ-Int8\nport 8001 | 空间分析/图集索引/图片验证"]
+
+    %% ═══════════════════════════════════
+    %% CONFIGURATION (v8.1 updated)
+    %% ═══════════════════════════════════
+    CONFIG["⚙️ 配置 (src/settings.py)\n─────────────────────\n并行:\nWRITER_WORKERS=4\nDRAWING_WORKERS=3\nPIPELINE_PARALLEL=true\n─────────────────────\nLLM韧性 (v8.1):\nLLM_TIMEOUT=120\nLLM_MAX_RETRIES=2\n─────────────────────\n适配器 (v8.1):\nADAPTER_MAX_TURNS=8\nADAPTER_MAX_CALLBACKS=2\n─────────────────────\n上下文管理 (v8.1):\nCONTEXT_SUMMARIZE_LLM=false\nCONTEXT_SUMMARY_MAX_TOKENS=256\n─────────────────────\n降级:\nWRITER_WORKERS=1 串行\nPIPELINE_PARALLEL=false 线性"]
+
+    %% ═══════════════════════════════════
+    %% AUTODL DEPLOYMENT
+    %% ═══════════════════════════════════
+    DEPLOY["🚀 AutoDL 一键部署\npython autodl_start.py\n─────────────────────\n自动: ModelScope下载模型\n自动: 清华镜像安装依赖\n自动: HF_ENDPOINT镜像\n自动: embedding预下载\n自动: 中文字体安装\n自动: 双vLLM实例启动"]
+
+    %% ═══════════════════════════════════
+    %% KNOWN ISSUES (v8.1)
+    %% ═══════════════════════════════════
+    DEBT["⚠️ 已知架构债务 (P1)\n─────────────────────\nP1-1: GlobalState无序列化\n无断点恢复能力\n─────────────────────\nP1-2: DAG并行State竞态\n读写集合假设无自动校验\n─────────────────────\nP1-3: 工具错误格式不统一\n4种不同的error schema\n─────────────────────\nP1-4: 步骤失败策略不明确\n无critical/non-critical分类"]
+
+    %% ═══════════════════════════════════
+    %% ALL CONNECTIONS
+    %% ═══════════════════════════════════
+
+    %% Frontend/CLI to API
+    U3 --> EP1
+    CLI --> L0
+    EP1 --> L0
+
+    %% API/CLI progress
+    EP3 -.- PG1
+    EP3 -.- PG2
+    EP4 -.- DL2
+
+    %% Input to Spatial Analysis
+    F7 -.-> P1
+    F8 -.-> P2
+    F9 -.-> P5
+    F13 -.-> AR1
+    P1 --> VL1
+
+    %% Input to State
+    L0U ==> S1
+    L0S ==> S1
+    F10 --> S2
+    F11 --> S1
+    F12 --> DRAWING
+
+    %% Spatial Analysis to State
+    P3 --> SM1
+    P4 --> SM1
+    VL2 --> SM1
+    SM1 --> S2
+    AR2 --> PLT6
+    P5 --> S2
+
+    %% Atlas indexing
+    AR1 --> AR2
+
+    %% ContextVar feeds all agents
+    CTXMGR -.->|AgentContext| PL_AGENT
+    CTXMGR -.->|AgentContext| ADP_AGENT
+    CTXMGR -.->|AgentContext| WR_AGENT
+    CTXMGR -.->|AgentContext| AUDIT_AGENT
+    CTXMGR -.->|AgentContext| DR_AGENT
+    L2 ===|State引用| CTXMGR
+
+    %% LLM Resilience feeds all agents (v8.1)
+    LLMRL -.->|LLMClient| PL_AGENT
+    LLMRL -.->|LLMClient| ADP_AGENT
+    LLMRL -.->|LLMClient| WR_AGENT
+    LLMRL -.->|LLMClient| AUDIT_AGENT
+    LLMRL -.->|LLMClient| DR_AGENT
+
+    %% DAG Scheduler orchestrates pipeline
+    DAG ==>|编排18步| PROC
+    DAG -.->|on_progress| EP3
+    CONFIG -.->|配置| DAG
+    CONFIG -.->|配置| LLMRL
+
+    %% State to Parallel Group 1
+    S1 --> PAR1
+    S2 --> PAR1
+    PAR1 --> S3
+
+    %% State to Planner (with spatial)
+    S1 --> PL_AGENT
+    S2 --> PL_AGENT
+    S3 --> PL_AGENT
+    PL_OUT --> S7
+
+    %% Spatial layout feeds planner tools
+    S2 -.->|spatial_layout| PLT5
+    AR2 -.->|atlas_conventions| PLT6
+
+    %% State to Compilation: Phase2
+    S7 --> CALC_P2
+    S1 --> CALC_P2
+    CALC_P2 --> S3
+
+    %% Calc to Assembler
+    S1 --> ASM
+    S3 --> ASM
+    S7 --> ASM
+    ASM --> S4
+
+    %% Adapter result to Flags
+    ADP_OUT -.->|adapter_result| S6
+
+    %% State to Writer Agent
+    S4 --> WR_AGENT
+    S2 --> WR_AGENT
+    WR_TOOLS --> S5
+
+    %% State to Drawing Agent
+    S2 -.->|spatial_layout+gis_gdf| DR_AGENT
+    S7 -.->|measures+空间布置| DR_AGENT
+    AR2 -.->|atlas制图规范| DRT2
+
+    %% VL for verification
+    DRT4 -.->|VL评分| GPU
+
+    %% State to Render
+    S4 --> B2
+    S5 --> B2
+    F6 --> B3
+
+    %% Compilation to Audit
+    S3 --> AUDIT_AGENT
+    S4 --> AUDIT_AGENT
+    S5 --> AUDIT_AGENT
+    S2 --> AUDIT_AGENT
+
+    %% Audit retry feeds back to writer
+    R4 -->|带修改指令| WR_AGENT
+
+    %% Audit exit
+    R1 -->|>=80通过| L7
+    R5 --> L7
+    R5 --> S6
+
+    %% Storage to Frontend
+    L7 --> FINAL
+    ST2 -.- EP3
+    FINAL -.- DL1
+    S6 -.- DL1
+
+    %% Progress feedback
+    PROC -.->|DAG步骤状态| EP3
+    AUDIT -.->|审计进度| EP3
+
+    %% GPU note connection
+    GPU -..- PROC
+    GPU -..- L1
+    DEPLOY -..- GPU
+
+    %% Known issues annotation
+    DEBT -..- L2
+    DEBT -..- DAG
+    DEBT -..- PROC
+
+    %% ═══════════════════════════════════
+    %% DAG DEPENDENCY GRAPH (reference)
+    %% ═══════════════════════════════════
+    %% 1_load_config
+    %%     ↓
+    %% 2_preprocess
+    %%     ↓
+    %%   ┌─────────┬─────────┐
+    %% 3_spatial  4_earthwork  5_erosion    ← 并行组A
+    %%   │         │           │
+    %%   └────┬────┘     ┌─────┘
+    %%        ↓          ↓
+    %%      6_planner (依赖 3+5)
+    %%        ↓
+    %%      7_cost (依赖 6+4)
+    %%        ↓
+    %%      8_benefit
+    %%        ↓
+    %%      9_assemble
+    %%        ↓
+    %%    9.5_adapter (校验+回调修复)     ← v8.1
+    %%        ↓
+    %%   ┌────┬────┬────┐
+    %% 10_writer 11_charts 12_drawings    ← 并行组B
+    %%   └────┴────┴────┘
+    %%        ↓
+    %%     13_render (依赖 10+11+12)
+    %%        ↓
+    %%     14_audit → 15_retry → 16_final → 17_package
+
+    %% ═══════════════════════════════════
+    %% STYLES
+    %% ═══════════════════════════════════
+    classDef fe fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    classDef api fill:#FFF3E0,stroke:#E65100,color:#BF360C
+    classDef cli fill:#E0F2F1,stroke:#00695C,color:#004D40,stroke-width:2px
+    classDef userIn fill:#E3F2FD,stroke:#1565C0,color:#0D47A1
+    classDef sysIn fill:#ECEFF1,stroke:#455A64,color:#263238
+    classDef opt fill:#F5F5F5,stroke:#9E9E9E,color:#616161,stroke-dasharray:5 5
+    classDef pre fill:#FFF8E1,stroke:#F9A825,color:#F57F17
+    classDef st fill:#F3E5F5,stroke:#6A1B9A,color:#4A148C
+    classDef cal fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20
+    classDef asm fill:#FFF9C4,stroke:#F9A825,color:#F57F17,stroke-width:3px
+    classDef agent fill:#FFCCBC,stroke:#BF360C,color:#BF360C,stroke-width:3px
+    classDef tools fill:#FCE4EC,stroke:#C62828,color:#B71C1C
+    classDef wr fill:#E0F2F1,stroke:#00695C,color:#004D40
+    classDef retry fill:#FFF9C4,stroke:#F9A825,color:#F57F17,stroke-width:3px
+    classDef render fill:#E0F7FA,stroke:#00838F,color:#006064
+    classDef store fill:#F1F8E9,stroke:#558B2F,color:#33691E
+    classDef final fill:#C8E6C9,stroke:#2E7D32,color:#1B5E20,stroke-width:3px
+    classDef gpu fill:#E1BEE7,stroke:#7B1FA2,color:#4A148C,stroke-dasharray:5 5
+    classDef spatial fill:#E8EAF6,stroke:#283593,color:#1A237E,stroke-width:2px
+    classDef vision fill:#FFF3E0,stroke:#E65100,color:#BF360C,stroke-width:2px
+    classDef atlas fill:#F3E5F5,stroke:#7B1FA2,color:#4A148C,stroke-width:2px
+    classDef mmap fill:#E3F2FD,stroke:#0D47A1,color:#01579B,stroke-width:3px
+    classDef deploy fill:#DCEDC8,stroke:#33691E,color:#1B5E20,stroke-width:3px
+    classDef parallel fill:#E8F5E9,stroke:#1B5E20,color:#1B5E20,stroke-width:3px,stroke-dasharray:8 4
+    classDef dagbox fill:#E3F2FD,stroke:#0D47A1,color:#01579B,stroke-width:3px
+    classDef ctxvar fill:#FFF3E0,stroke:#E65100,color:#BF360C,stroke-width:2px,stroke-dasharray:3 3
+    classDef config fill:#F3E5F5,stroke:#6A1B9A,color:#4A148C,stroke-width:2px
+    classDef resilience fill:#E8F5E9,stroke:#1B5E20,color:#1B5E20,stroke-width:3px,stroke-dasharray:5 3
+    classDef debt fill:#FFEBEE,stroke:#C62828,color:#B71C1C,stroke-width:2px,stroke-dasharray:4 4
+
+    class U1,U2,U3,PG1,PG2,PG3,DL1,DL2 fe
+    class EP1,EP2,EP3,EP4 api
+    class CLI cli
+    class F1,F2 userIn
+    class F3,F4,F5,F6,F10,F11,F12 sysIn
+    class F7,F8,F9,F13 opt
+    class P1,P3,P4,P5 pre
+    class S1,S2,S3,S5,S6,S7 st
+    class S4 asm
+    class C0,C1,C2 cal
+    class C3,C4 cal
+    class ASM asm
+    class PL_AGENT,WR_AGENT,AUDIT_AGENT,DR_AGENT,ADP_AGENT agent
+    class ADPT1,ADPT2,ADPT3,ADPT4,ADPT5,ADPT6 tools
+    class PLT1,PLT2,PLT3,PLT4 tools
+    class PLT5,PLT6 spatial
+    class WRT1,WRT2,WRT3,WRT4 tools
+    class DRT1,DRT2,DRT3,DRT4 tools
+    class AT1,AT2,AT3 tools
+    class PL_OUT,AO1,AO2,ADP_OUT tools
+    class R2,R4 retry
+    class B1,B2,B3,B4 render
+    class VL1,VL2 vision
+    class AR1,AR2 atlas
+    class SM1 spatial
+    class DR_FALLBACK,MM_FALLBACK mmap
+    class ST1,ST2,ST3 store
+    class FINAL final
+    class GPU gpu
+    class DEPLOY deploy
+    class WR_P1,WR_P2,DR_PAR1 parallel
+    class DAG1,DAG2,DAG3,DAG4 dagbox
+    class CTX1,CTX2,CTX3,CTX4 ctxvar
+    class CONFIG config
+    class LLMC1,LLMC2,CW1,CW2,CW3,TTRUNC resilience
+    class DEBT debt

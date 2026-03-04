@@ -1,0 +1,455 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize":"12px","primaryColor":"#4A90D9","lineColor":"#666","fontFamily":"Arial"}, "flowchart": {"curve":"basis","nodeSpacing":25,"rankSpacing":35}}}%%
+
+flowchart TB
+
+    %% ═══════════════════════════════════
+    %% FRONTEND  (Vue 3 + Element Plus + Vite)
+    %% ═══════════════════════════════════
+    subgraph FE["🖥️ 前端 Vue 3 + Element Plus  :5173"]
+        direction LR
+        subgraph FE_UP["📤 三步向导 NewRun.vue"]
+            U1["步骤1: 基本信息表单\n项目名/地点/投资/工期\n+ 智能文档识别面板\n拖拽上传JPG/PNG/PDF/DWG/DXF/SHP\nAI提取 | CAD转PNG | GIS导入分区"]
+            U2["步骤2: 分区面积填写\n建构筑物/道路/绿化/临时\n前端校验合计=总面积"]
+            U3["步骤3: 措施CSV + 确认\n上传已列措施CSV\n选择是否使用LLM\n一键启动生成"]
+        end
+        subgraph FE_PG["⏳ 实时进度 RunProgress.vue"]
+            PG1["15步进度条\nElement Steps组件\n编制/审计阶段"]
+            PG2["步骤状态卡片\n运行中/完成/错误图标\n耗时计时"]
+            PG3["SSE日志流\nEventSource实时推送"]
+        end
+        subgraph FE_DL["📥 结果交付 Result.vue"]
+            DL1["审计评分卡片\n总分+逐章评分\n通过/需人工复核"]
+            DL2["下载按钮\nreport.docx\naudit.json\ntpl_ctx.json"]
+        end
+        subgraph FE_EX["⚙️ 其他页面"]
+            EX1["Dashboard.vue\n运行历史列表\n状态/评分/操作"]
+            EX2["Settings.vue\nLLM参数配置\nVL模型状态\n预设方案切换"]
+        end
+        U1 --> U2 --> U3
+    end
+
+    %% ═══════════════════════════════════
+    %% BACKEND API  (FastAPI :8080)
+    %% ═══════════════════════════════════
+    subgraph API["🔌 后端API FastAPI  :8080  (35路由)"]
+        direction LR
+        subgraph API_PIPE["pipelines.py 7路由"]
+            EP1["POST /api/pipelines\n创建运行+启动后台线程"]
+            EP2["GET /api/pipelines\n历史列表"]
+            EP3["GET /api/pipelines/{id}/progress\nSSE实时进度流"]
+            EP4["GET /api/pipelines/{id}/output\n下载report.docx"]
+        end
+        subgraph API_CFG["config.py 8路由"]
+            EC1["GET/PUT /api/config/facts\n读写facts.json"]
+            EC2["GET/PUT /api/config/measures\n读写measures.csv"]
+            EC3["POST /api/config/upload/*\n文件上传"]
+            EC4["POST /api/config/validate/*\n数据校验"]
+        end
+        subgraph API_VL["vision.py 10路由"]
+            EV1["POST /api/vision/upload\n上传文档(含DWG/SHP)"]
+            EV2["POST /api/vision/extract\nVL提取项目信息"]
+            EV3["POST /api/vision/site-desc\nVL生成现场描述"]
+            EV4["GET /api/vision/health\nVL模型健康检查"]
+            EV5["POST /api/vision/cad-convert\nCAD(DWG/DXF)→PNG"]
+            EV6["POST /api/vision/gis-validate\nGIS分区面积校验"]
+            EV7["POST /api/vision/gis-extract-zones\nGIS→分区列表导入"]
+        end
+        subgraph API_SYS["system.py 4路由"]
+            ES1["GET /api/system/health\nLLM连通性检查"]
+            ES2["GET/PUT /api/system/settings\n读写LLM参数"]
+            ES3["GET /api/system/presets\n预设方案列表"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% SERVICES LAYER
+    %% ═══════════════════════════════════
+    subgraph SVC["🛠️ 服务层 server/services/"]
+        direction LR
+        SVC1["runner.py\nPipelineRunner\n后台threading执行\non_progress回调\n事件队列+SSE推送"]
+        SVC2["storage.py\nSQLite server.db\nruns表 10字段\nCRUD操作"]
+    end
+
+    %% ═══════════════════════════════════
+    %% INPUT LAYER
+    %% ═══════════════════════════════════
+    subgraph L0["📥 输入层"]
+        direction LR
+        subgraph L0U["👤 用户输入"]
+            F1["facts_v2.json\n概况+分区+工期+目标"]
+            F2["measures_v2.csv\n已列措施+单价+合价"]
+        end
+        subgraph L0S["🏭 系统内置"]
+            F3["soil_map.json"]
+            F4["price_v2.csv\nfee_rate.json"]
+            F5["legal_refs.json"]
+            F6["template.docx"]
+            F10["范文语料库\nChromaDB持久化\n384维嵌入向量"]
+        end
+        subgraph L0O["📎 可选上传"]
+            F7["JPG/PNG/BMP\n立项文件/蓝图/许可证"]
+            F8["PDF 附件\n(需poppler转换)"]
+            F7C["CAD .dwg/.dxf\nezdxf渲染DXF→PNG\nDWG需ODA转换器"]
+            F8G["GIS .shp/.geojson\ngeopandas分区面积\n容差校验(5%)"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% VL PREPROCESSING LAYER
+    %% ═══════════════════════════════════
+    subgraph L1["⚙️ 预处理层"]
+        direction LR
+        subgraph L1_VL["🔭 VL视觉处理 src/vision.py"]
+            direction TB
+            VL1["文件分类\nclassify_documents()\n关键词→10类别"]
+            VL2["智能优选\n_prioritize_files()\n立项>用地>蓝图\n跳过三轴/固结等"]
+            VL3["图片编码\n_encode_image()\nmax 1344px\n对齐28px patch\nJPEG Q85→30"]
+            VL4{"Ollama?"}
+            VL4 -->|Yes| VL5["Ollama原生API\n/api/chat\nimages base64数组\n超时600s 最多3张"]
+            VL4 -->|No| VL6["vLLM OpenAI API\n/v1/chat/completions\nimage_url base64\n最多8张"]
+            VL1 --> VL2 --> VL3 --> VL4
+        end
+        subgraph L1_CAD["📐 CAD处理 src/cad.py"]
+            direction TB
+            CAD1["DXF: ezdxf读取\nmatplotlib渲染\n→ PNG @200DPI"]
+            CAD2["DWG: ODA转DXF\n或 LibreCAD直出\n或 dwg2dxf CLI"]
+            CAD3["PNG送入VL分析\n提取图纸信息"]
+            CAD1 --> CAD3
+            CAD2 --> CAD3
+        end
+        subgraph L1_GIS["🗺️ GIS处理 src/gis.py"]
+            direction TB
+            GIS1["geopandas读取\nSHP/GeoJSON/GPKG"]
+            GIS2["CRS自动投影\n地理→UTM(m单位)"]
+            GIS3["分区面积计算\n属性→防治分区名映射"]
+            GIS4["容差校验 vs facts\n偏差≤5% 通过"]
+            GIS5["渲染分区总览图\n带标注PNG"]
+            GIS1 --> GIS2 --> GIS3 --> GIS4
+            GIS3 --> GIS5
+        end
+        subgraph L1_RAG["📚 RAG检索"]
+            P5["rag.search()\nChromaDB查询\ntop_k=3\n按章节过滤"]
+        end
+    end
+
+    %% ═══════════════════════════════════
+    %% GLOBAL STATE
+    %% ═══════════════════════════════════
+    subgraph L2["🧠 全局状态机 GlobalState  7分区"]
+        direction LR
+        S1["Static\nmeta, soil_map\nprice_table, fee_rate\nlegal_refs, measure_lib"]
+        S2["ETL\nzones(extended)\nrag_ready, site_desc\nsite_img"]
+        S3["Calc\nearthwork(12标签)\nerosion_df(18标签)\ncost_summary(80标签)\nbenefit(18标签)"]
+        S4["TplCtx\n229标签dict\n全量模板上下文"]
+        S5["Draft\nchapters\n{ch1~ch8: text}"]
+        S6["Flags\nretry_count\nscores, audit_log\nneeds_human_review"]
+        S7["Measures\nfull_measures_list\n已有(existing)\n+新增(planned)"]
+    end
+
+    %% ═══════════════════════════════════════════════════
+    %% PROCESSING LAYER
+    %% ═══════════════════════════════════════════════════
+    subgraph PROC["🔄 处理层 15步流水线 src/pipeline.py"]
+
+        %% ─── COMPILATION CLUSTER ───
+        subgraph COMP["📝 编制集群 步骤3-11"]
+            direction TB
+
+            subgraph CALC_P1["🧮 计算Phase1: 基础数据 (步骤3-4)"]
+                direction LR
+                C1["🏗️ 土方平衡\ncalculators/earthwork.py\n挖-剥+覆=净挖\n净挖-填=余方\n→12个ew_*标签"]
+                C2["🌊 侵蚀预测\ncalculators/erosion.py\nRUSLE公式\n3时段×5分区矩阵\n→18个ep_*标签"]
+            end
+
+            subgraph PLANNER["🤖 措施规划师 Agent (步骤5)"]
+                direction TB
+                PL_AGENT["Qwen2.5-72B / 7B\nReAct工具调用循环\n最多8轮\n决策: 新增哪些措施"]
+
+                subgraph PL_TOOLS["🧰 规划工具箱 4工具"]
+                    direction LR
+                    PLT1["measure_library\n标准措施库查询\n按分区类型匹配"]
+                    PLT2["quantity_estimator\n工程量估算\n面积×系数"]
+                    PLT3["regulation_checker\n合规校验\n≥1工程+1植物+1临时"]
+                    PLT4["rag_exemplar\n范文措施参考"]
+                end
+
+                PL_OUT["输出: 完整措施清单\n每条: 名称/分区/类型\n数量/单位/布设位置\nsource=planned"]
+
+                PL_AGENT --> PL_TOOLS
+                PL_TOOLS --> PL_OUT
+            end
+
+            subgraph CALC_P2["🧮 计算Phase2: 基于措施 (步骤6-7)"]
+                direction LR
+                C3["💰 造价估算\ncalculators/cost.py\n6层费率叠加\n独立费+补偿费\n→80个c_*标签"]
+                C4["📊 效益分析\ncalculators/benefit.py\n6项指标计算\nvs防治目标\n→18个bf_*标签"]
+            end
+
+            ASM["🔧 状态装配器 (步骤8)\nassembler.py\n7分区→229模板标签\n数值格式化\n表格数据组装"]
+
+            subgraph WRITER["🤖 撰稿智能体 Agent (步骤9)"]
+                direction TB
+                WR_AGENT["Qwen2.5-72B / 7B\n逐章串行生成\n顺序: Ch2→3→4→5→6→7→8→Ch1\n最多6轮/章"]
+
+                subgraph WR_TOOLS["🧰 撰稿工具箱 4工具"]
+                    direction LR
+                    WRT1["rag_search\n按章节检索范文\nChromaDB top_k=3"]
+                    WRT2["calc_lookup\n查询计算结果\n点分路径访问"]
+                    WRT3["self_checker\n数字引用自查\nregex匹配验证"]
+                    WRT4["prev_chapter\n前序章节摘要\n保持上下文连贯"]
+                end
+
+                WR_AGENT --> WR_TOOLS
+            end
+
+            subgraph COMP_BINDERY["🖨️ 制图与渲染组 (步骤10-11)"]
+                direction TB
+                B1["📊 制图 charts.py\n4张PNG @300DPI\nerosion_chart 柱状\ninvestment_pie 饼图\nbenefit_bar 柱状\nzone_pie 饼图"]
+                B2["合并上下文\ntpl_ctx + chapters\n+ chart paths"]
+                B3["docxtpl渲染\nrenderer.py\n229标签替换\n4表循环行复制\n→ draft.docx"]
+                B4["完整性检查\n无残留{{标签}}\n12表非空\n文件>50KB"]
+                B1 --> B2 --> B3 --> B4
+            end
+
+            CALC_P1 --> PLANNER
+            PLANNER --> CALC_P2
+            CALC_P2 --> ASM
+            ASM --> WRITER
+            WRITER --> COMP_BINDERY
+        end
+
+        %% ─── AUDIT CLUSTER ───
+        subgraph AUDIT["🔍 审计集群 (步骤12-14)"]
+            direction TB
+
+            AUDIT_AGENT["🤖 审计智能体 Qwen2.5-72B / 7B\n加权评分: 数值40%+文本30%+结构20%+完整10%\n最多8轮工具调用"]
+
+            subgraph AUDIT_TOOLS["🧰 审计工具箱 3工具"]
+                direction LR
+                AT1["numeric_validator\nPython硬逻辑\n土方/侵蚀/造价/效益\n数值一致性校验"]
+                AT2["text_validator\n章节文本校验\n≥200字 无占位符\n格式规范性"]
+                AT3["rag_comparator\n范文结构对比\n术语准确性\n相似度评分"]
+            end
+
+            subgraph AUDIT_OUTPUT["📋 审计输出"]
+                direction LR
+                AO1["审计报告\n逐章评分\n问题清单\n修改建议"]
+                AO2["综合评分\n0-100分"]
+            end
+
+            subgraph AUDIT_R["🔄 章节级重试 (步骤13)"]
+                R1{"评分>=80?"}
+                R2["生成修改指令\nchapter_id\n+问题原因\n+精准反馈"]
+                R3{"retry<3?"}
+                R4["仅重写失败章节\n附带修改指令\n重新渲染"]
+                R5["强制通过\n标记needs_human_review\n写入审计日志"]
+                R1 -->|"60-79"| R2
+                R1 -->|"<60"| R5
+                R2 --> R3
+                R3 -->|Yes| R4
+                R3 -->|No| R5
+            end
+
+            AUDIT_AGENT --> AUDIT_TOOLS
+            AUDIT_TOOLS --> AUDIT_OUTPUT
+            AUDIT_OUTPUT --> R1
+        end
+
+        FINAL_RENDER["步骤14: 最终渲染\nreport.docx"]
+        PKG["步骤15: 打包输出\nreport.docx\naudit.json\ntpl_ctx.json"]
+
+        %% inter-cluster
+        COMP --> AUDIT
+        R4 -->|带修改指令| WR_AGENT
+        R1 -->|">=80通过"| FINAL_RENDER
+        R5 --> FINAL_RENDER
+        FINAL_RENDER --> PKG
+    end
+
+    %% ═══════════════════════════════════
+    %% STORAGE & DELIVERY
+    %% ═══════════════════════════════════
+    subgraph L7["📦 存储与交付"]
+        direction LR
+        ST1["本地文件系统\ndata/output/{run_id}/\nreport.docx\naudit.json\ntpl_ctx.json"]
+        ST2["SQLite server.db\nruns表\nid/status/score\ncreated_at/output_dir"]
+        ST3["ChromaDB\ndata/chromadb/\n范文向量库持久化"]
+    end
+
+    OUTPUT(["📄 report.docx + audit.json + tpl_ctx.json + 4×chart.png"])
+
+    %% ═══════════════════════════════════
+    %% GPU / MODEL ALLOCATION
+    %% ═══════════════════════════════════
+    subgraph GPU["🎮 模型部署"]
+        direction LR
+        GPU_LOCAL["💻 本机开发 (Ollama)\nqwen2.5:7b 文本\nqwen2.5vl:7b 视觉\n同端口11434"]
+        GPU_PROD["🖥️ AutoDL生产 (vLLM)\nGPU0-1: 文本72B :8000\nGPU2-3: VL-72B :8001\n4×RTX6000Ada/A800"]
+    end
+
+    %% ═══════════════════════════════════
+    %% ALL CONNECTIONS
+    %% ═══════════════════════════════════
+
+    %% Frontend to API
+    U3 --> EP1
+    U1 --> EV1
+    U1 --> EV2
+    U1 --> EV3
+    U1 --> EV5
+    U1 --> EV6
+    U1 --> EV7
+    EP3 -.- PG3
+    EP4 -.- DL2
+    EX1 -.- EP2
+    EX2 -.- ES1
+    EX2 -.- EV4
+
+    %% API to Services
+    EP1 --> SVC1
+    EP2 --> SVC2
+    EP3 --> SVC1
+    EP4 --> SVC2
+
+    %% Services to Pipeline
+    SVC1 --> L0
+
+    %% VL to Input
+    EV2 --> L1_VL
+    EV3 --> L1_VL
+    VL5 --> F1
+    VL6 --> F1
+
+    %% Input to State
+    L0U ==> S1
+    L0S ==> S1
+    F10 --> S2
+
+    %% Optional to preprocessing
+    F7 -.-> VL1
+    F8 -.-> VL1
+    F7C -.-> CAD1
+    F7C -.-> CAD2
+    F8G -.-> GIS1
+    EV5 --> L1_CAD
+    EV6 --> L1_GIS
+    EV7 --> L1_GIS
+    CAD3 -.-> VL1
+
+    %% Preprocess to State
+    P5 --> S2
+    L1_VL -.->|site_desc| S2
+    L1_VL -.->|extracted fields| S1
+    GIS3 -.->|分区面积| S2
+    GIS4 -.->|校验结果| S6
+
+    %% State to Compilation: Phase1
+    S1 --> CALC_P1
+    S2 --> CALC_P1
+    CALC_P1 --> S3
+
+    %% State to Planner
+    S1 --> PL_AGENT
+    S2 --> PL_AGENT
+    S3 --> PL_AGENT
+    PL_OUT --> S7
+
+    %% State to Compilation: Phase2
+    S7 --> CALC_P2
+    S1 --> CALC_P2
+    CALC_P2 --> S3
+
+    %% Calc to Assembler
+    S1 --> ASM
+    S3 --> ASM
+    S7 --> ASM
+    ASM --> S4
+
+    %% State to Writer Agent
+    S4 --> WR_AGENT
+    S2 --> WR_AGENT
+    WR_TOOLS --> S5
+
+    %% State to Render
+    S4 --> B2
+    S5 --> B2
+    F6 --> B3
+
+    %% Compilation to Audit
+    S3 --> AUDIT_AGENT
+    S4 --> AUDIT_AGENT
+    S5 --> AUDIT_AGENT
+    S2 --> AUDIT_AGENT
+
+    %% Audit exit
+    R5 --> S6
+
+    %% Storage
+    PKG --> L7
+    L7 --> OUTPUT
+    ST2 -.- EP2
+    ST1 -.- EP4
+    OUTPUT -.- DL1
+    S6 -.- DL1
+
+    %% Progress feedback
+    COMP -.->|编制进度SSE| EP3
+    AUDIT -.->|审计进度SSE| EP3
+
+    %% GPU connections
+    GPU -..- PROC
+    GPU -..- L1_VL
+
+    %% ═══════════════════════════════════
+    %% STYLES
+    %% ═══════════════════════════════════
+    classDef fe fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    classDef api fill:#FFF3E0,stroke:#E65100,color:#BF360C
+    classDef svc fill:#FFE0B2,stroke:#EF6C00,color:#E65100
+    classDef userIn fill:#E3F2FD,stroke:#1565C0,color:#0D47A1
+    classDef sysIn fill:#ECEFF1,stroke:#455A64,color:#263238
+    classDef opt fill:#F5F5F5,stroke:#9E9E9E,color:#616161,stroke-dasharray:5 5
+    classDef cad fill:#FFF3E0,stroke:#E65100,color:#BF360C,stroke-width:2px
+    classDef gis fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px
+    classDef pre fill:#FFF8E1,stroke:#F9A825,color:#F57F17
+    classDef vl fill:#E1F5FE,stroke:#0277BD,color:#01579B,stroke-width:2px
+    classDef st fill:#F3E5F5,stroke:#6A1B9A,color:#4A148C
+    classDef cal fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20
+    classDef asm fill:#FFF9C4,stroke:#F9A825,color:#F57F17,stroke-width:3px
+    classDef agent fill:#FFCCBC,stroke:#BF360C,color:#BF360C,stroke-width:3px
+    classDef tools fill:#FCE4EC,stroke:#C62828,color:#B71C1C
+    classDef wr fill:#E0F2F1,stroke:#00695C,color:#004D40
+    classDef retry fill:#FFF9C4,stroke:#F9A825,color:#F57F17,stroke-width:3px
+    classDef render fill:#E0F7FA,stroke:#00838F,color:#006064
+    classDef store fill:#F1F8E9,stroke:#558B2F,color:#33691E
+    classDef final fill:#C8E6C9,stroke:#2E7D32,color:#1B5E20,stroke-width:3px
+    classDef gpu fill:#E1BEE7,stroke:#7B1FA2,color:#4A148C,stroke-dasharray:5 5
+
+    class U1,U2,U3,PG1,PG2,PG3,DL1,DL2,EX1,EX2 fe
+    class EP1,EP2,EP3,EP4,EC1,EC2,EC3,EC4,EV1,EV2,EV3,EV4,EV5,EV6,EV7,ES1,ES2,ES3 api
+    class SVC1,SVC2 svc
+    class F1,F2 userIn
+    class F3,F4,F5,F6,F10 sysIn
+    class F7,F8 opt
+    class F7C cad
+    class F8G gis
+    class CAD1,CAD2,CAD3 cad
+    class GIS1,GIS2,GIS3,GIS4,GIS5 gis
+    class P5 pre
+    class VL1,VL2,VL3,VL5,VL6 vl
+    class S1,S2,S3,S5,S6,S7 st
+    class S4 asm
+    class C1,C2 cal
+    class C3,C4 cal
+    class ASM asm
+    class PL_AGENT,WR_AGENT,AUDIT_AGENT agent
+    class PLT1,PLT2,PLT3,PLT4 tools
+    class WRT1,WRT2,WRT3,WRT4 tools
+    class AT1,AT2,AT3 tools
+    class PL_OUT,AO1,AO2 tools
+    class R2,R4 retry
+    class B1,B2,B3,B4 render
+    class FINAL_RENDER,PKG render
+    class ST1,ST2,ST3 store
+    class OUTPUT final
+    class GPU_LOCAL,GPU_PROD gpu

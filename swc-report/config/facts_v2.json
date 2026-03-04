@@ -1,0 +1,89 @@
+{
+  "project_name": "金石博雅园项目",
+  "investor": "南通金富城房地产开发有限公司",
+  "location": {
+    "province": "江苏省",
+    "city": "南通市",
+    "district": "崇川区",
+    "address": "南通市崇川区XXX路以东、XXX路以南",
+    "longitude": 120.89,
+    "latitude": 32.01
+  },
+  "project_nature": "新建",
+  "project_type": "房地产",
+  "approval_level": "市级",
+  "total_investment_万元": 180000,
+  "civil_investment_万元": 95000,
+  "construction_area_m2": 152000,
+  "land_area_hm2": 7.9368,
+  "earthwork": {
+    "excavation_m3": 135000,
+    "fill_m3": 110000,
+    "topsoil_strip_m3": 15000,
+    "topsoil_backfill_m3": 15000
+  },
+  "schedule": {
+    "start_date": "2023-08-01",
+    "end_date": "2025-08-01",
+    "plan_submit_date": "2024-03-01",
+    "construction_period_months": 24
+  },
+  "zones": [
+    {
+      "name": "建(构)筑物区",
+      "area_hm2": 3.67,
+      "excavation_m3": 85000,
+      "fill_m3": 72000,
+      "description": "包括1#~12#住宅楼、地下车库、商业配套等"
+    },
+    {
+      "name": "道路广场区",
+      "area_hm2": 2.1,
+      "excavation_m3": 28000,
+      "fill_m3": 25000,
+      "description": "小区内部道路、广场及停车场"
+    },
+    {
+      "name": "绿化工程区",
+      "area_hm2": 1.17,
+      "excavation_m3": 5000,
+      "fill_m3": 8000,
+      "description": "小区绿化景观工程"
+    },
+    {
+      "name": "施工生产生活区",
+      "area_hm2": 0.75,
+      "excavation_m3": 2000,
+      "fill_m3": 1000,
+      "description": "施工临建、材料堆场、生活区"
+    },
+    {
+      "name": "临时堆土区",
+      "area_hm2": 0.2468,
+      "excavation_m3": 15000,
+      "fill_m3": 4000,
+      "description": "表土及多余土方临时堆放区"
+    }
+  ],
+  "prevention_level": "一级",
+  "design_level_year": 2026,
+  "landscape_type": "平原沙土区",
+  "soil_erosion_type": "水力侵蚀",
+  "allowable_erosion_modulus": 500,
+  "prevention_targets": {
+    "水土流失治理度": 95,
+    "土壤流失控制比": 1,
+    "渣土防护率": 95,
+    "表土保护率": 97,
+    "林草植被恢复率": 97,
+    "林草覆盖率": 27
+  },
+  "has_borrow_area": false,
+  "has_spoil_area": false,
+  "site_desc": "",
+  "project_boundary": {
+    "bbox": null,
+    "coordinates": null,
+    "area_tolerance_pct": 30
+  }
+}

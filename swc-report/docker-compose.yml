@@ -1,0 +1,30 @@
+# 水土保持方案自动生成系统 — Docker Compose
+#
+# AutoDL / Linux 服务器部署:
+#   1. 先启动 vLLM:  bash scripts/start_vllm.sh 72b-int8
+#   2. docker compose up -d        # Web UI → http://localhost:8080
+#   3. docker compose down          # 停止
+#
+# CLI 模式:
+#   docker compose run --rm swc-report python scripts/run.py -v
+
+services:
+  swc-report:
+    build: .
+    # network_mode: host 让容器直接访问宿主机的 vLLM (8000/8001)
+    network_mode: host
+    environment:
+      - VLLM_URL=${VLLM_URL:-http://localhost:8000/v1}
+      - VL_URL=${VL_URL:-http://localhost:8001/v1}
+      - MODEL_NAME=${MODEL_NAME:-Qwen2.5-72B-Instruct}
+      - VL_MODEL_NAME=${VL_MODEL_NAME:-Qwen2.5-VL-72B-Instruct}
+      - MAX_TOKENS=${MAX_TOKENS:-4096}
+      - TEMPERATURE=${TEMPERATURE:-0.3}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+    volumes:
+      - ./data/output:/app/data/output
+      - ./data/chromadb:/app/data/chromadb
+      - ./data/atlas:/app/data/atlas
+      - ./data/atlas_db:/app/data/atlas_db
+      - ./config:/app/config
+      - ./corpus:/app/corpus

@@ -1,0 +1,77 @@
+# ── 大文件 / 二进制资产 ──
+*.pdf
+*.doc
+*.docx
+*.png
+*.dwg
+*.dxf
+*.xls
+*.xlsx
+*.bmp
+*.jpg
+*.jpeg
+*.gif
+*.tif
+*.tiff
+*.psd
+*.bin
+*.pickle
+*.sqlite3
+*.docm
+*.pptx
+
+# ── LLM 模型目录 ──
+LLM/
+
+# ── 数据输出 / 运行产物 ──
+data/output/
+swc-report/data/output/
+swc-report/data/chromadb/
+swc-report/data/chromadb_v1_new/
+swc-report/data/atlas_db/
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.so
+
+# ── Node.js ──
+node_modules/
+package-lock.json
+
+# ── 虚拟环境 ──
+venv/
+.venv/
+env/
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+nul
+
+# ── Claude Code ──
+.claude/
+
+# ── 日志 / 临时 / 数据库 ──
+*.log
+*.bak
+*.tmp
+*.db
+.env
+Dtemp_*
+D?temp_*
+*temp_boundary*
+*cad_diagnose*

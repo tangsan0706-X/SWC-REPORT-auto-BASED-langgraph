@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+.pytest_cache
+data/output/*
+data/chromadb/*
+data/server.db
+docs/
+.git
+*.pdf
+*.docx
+!templates/*.docx
+web/node_modules
+web/dist

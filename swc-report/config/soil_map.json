@@ -1,0 +1,148 @@
+{
+  "description": "江苏省土壤侵蚀模数查表 (单位: t/km²·a)。按城市×分区类型×时段存储。construction=施工扰动期, recovery=自然恢复期, background=原地貌背景值, allowable=容许流失量。",
+  "data": {
+    "南通市": {
+      "background_modulus": 250,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5200, "recovery": 800 },
+        "道路广场区":   { "construction": 4800, "recovery": 750 },
+        "绿化工程区":   { "construction": 3200, "recovery": 500 },
+        "施工生产生活区": { "construction": 4000, "recovery": 600 },
+        "临时堆土区":   { "construction": 8500, "recovery": 1200 }
+      }
+    },
+    "南京市": {
+      "background_modulus": 500,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 6800, "recovery": 1200 },
+        "道路广场区":   { "construction": 6200, "recovery": 1100 },
+        "绿化工程区":   { "construction": 4500, "recovery": 800 },
+        "施工生产生活区": { "construction": 5500, "recovery": 900 },
+        "临时堆土区":   { "construction": 10500, "recovery": 1800 }
+      }
+    },
+    "无锡市": {
+      "background_modulus": 300,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5500, "recovery": 850 },
+        "道路广场区":   { "construction": 5000, "recovery": 800 },
+        "绿化工程区":   { "construction": 3500, "recovery": 550 },
+        "施工生产生活区": { "construction": 4200, "recovery": 650 },
+        "临时堆土区":   { "construction": 9000, "recovery": 1300 }
+      }
+    },
+    "徐州市": {
+      "background_modulus": 350,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5800, "recovery": 950 },
+        "道路广场区":   { "construction": 5300, "recovery": 880 },
+        "绿化工程区":   { "construction": 3800, "recovery": 620 },
+        "施工生产生活区": { "construction": 4600, "recovery": 720 },
+        "临时堆土区":   { "construction": 9500, "recovery": 1500 }
+      }
+    },
+    "常州市": {
+      "background_modulus": 300,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5400, "recovery": 840 },
+        "道路广场区":   { "construction": 4900, "recovery": 780 },
+        "绿化工程区":   { "construction": 3400, "recovery": 530 },
+        "施工生产生活区": { "construction": 4100, "recovery": 640 },
+        "临时堆土区":   { "construction": 8800, "recovery": 1250 }
+      }
+    },
+    "苏州市": {
+      "background_modulus": 250,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5100, "recovery": 790 },
+        "道路广场区":   { "construction": 4700, "recovery": 740 },
+        "绿化工程区":   { "construction": 3100, "recovery": 490 },
+        "施工生产生活区": { "construction": 3900, "recovery": 590 },
+        "临时堆土区":   { "construction": 8300, "recovery": 1180 }
+      }
+    },
+    "连云港市": {
+      "background_modulus": 400,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 6200, "recovery": 1050 },
+        "道路广场区":   { "construction": 5700, "recovery": 980 },
+        "绿化工程区":   { "construction": 4100, "recovery": 700 },
+        "施工生产生活区": { "construction": 5000, "recovery": 800 },
+        "临时堆土区":   { "construction": 10000, "recovery": 1600 }
+      }
+    },
+    "淮安市": {
+      "background_modulus": 250,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5000, "recovery": 780 },
+        "道路广场区":   { "construction": 4600, "recovery": 730 },
+        "绿化工程区":   { "construction": 3000, "recovery": 480 },
+        "施工生产生活区": { "construction": 3800, "recovery": 580 },
+        "临时堆土区":   { "construction": 8200, "recovery": 1150 }
+      }
+    },
+    "盐城市": {
+      "background_modulus": 300,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5300, "recovery": 820 },
+        "道路广场区":   { "construction": 4800, "recovery": 770 },
+        "绿化工程区":   { "construction": 3300, "recovery": 520 },
+        "施工生产生活区": { "construction": 4000, "recovery": 630 },
+        "临时堆土区":   { "construction": 8600, "recovery": 1220 }
+      }
+    },
+    "扬州市": {
+      "background_modulus": 300,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5400, "recovery": 830 },
+        "道路广场区":   { "construction": 4900, "recovery": 770 },
+        "绿化工程区":   { "construction": 3400, "recovery": 530 },
+        "施工生产生活区": { "construction": 4100, "recovery": 640 },
+        "临时堆土区":   { "construction": 8800, "recovery": 1250 }
+      }
+    },
+    "镇江市": {
+      "background_modulus": 500,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 6800, "recovery": 1200 },
+        "道路广场区":   { "construction": 6200, "recovery": 1100 },
+        "绿化工程区":   { "construction": 4500, "recovery": 800 },
+        "施工生产生活区": { "construction": 5500, "recovery": 900 },
+        "临时堆土区":   { "construction": 10500, "recovery": 1800 }
+      }
+    },
+    "泰州市": {
+      "background_modulus": 250,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5100, "recovery": 790 },
+        "道路广场区":   { "construction": 4700, "recovery": 740 },
+        "绿化工程区":   { "construction": 3100, "recovery": 490 },
+        "施工生产生活区": { "construction": 3900, "recovery": 590 },
+        "临时堆土区":   { "construction": 8300, "recovery": 1180 }
+      }
+    },
+    "宿迁市": {
+      "background_modulus": 300,
+      "allowable_modulus": 500,
+      "zones": {
+        "建(构)筑物区": { "construction": 5300, "recovery": 830 },
+        "道路广场区":   { "construction": 4900, "recovery": 780 },
+        "绿化工程区":   { "construction": 3300, "recovery": 520 },
+        "施工生产生活区": { "construction": 4000, "recovery": 630 },
+        "临时堆土区":   { "construction": 8600, "recovery": 1220 }
+      }
+    }
+  }
+}

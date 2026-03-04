@@ -1,0 +1,230 @@
+{
+  "description": "水土保持方案报告书引用的法律法规和技术标准。按类别分组，标注适用章节。",
+  "version": "2024-01",
+  "references": [
+    {
+      "id": "law_001", "category": "法律",
+      "number": "", "name": "中华人民共和国水土保持法",
+      "publish_year": 2010, "publisher": "全国人大常委会",
+      "effective_date": "2011-03-01",
+      "chapters": [1, 8], "note": "上位法，第1章编制依据必引"
+    },
+    {
+      "id": "law_002", "category": "法律",
+      "number": "", "name": "中华人民共和国水法",
+      "publish_year": 2002, "publisher": "全国人大常委会",
+      "effective_date": "2002-10-01",
+      "chapters": [1], "note": ""
+    },
+    {
+      "id": "law_003", "category": "法律",
+      "number": "", "name": "中华人民共和国环境保护法",
+      "publish_year": 2014, "publisher": "全国人大常委会",
+      "effective_date": "2015-01-01",
+      "chapters": [1], "note": ""
+    },
+    {
+      "id": "law_004", "category": "法律",
+      "number": "", "name": "中华人民共和国土地管理法",
+      "publish_year": 2019, "publisher": "全国人大常委会",
+      "effective_date": "2020-01-01",
+      "chapters": [1], "note": ""
+    },
+    {
+      "id": "reg_001", "category": "行政法规",
+      "number": "国务院令第709号", "name": "中华人民共和国水土保持法实施条例",
+      "publish_year": 2011, "publisher": "国务院",
+      "effective_date": "2011-03-01",
+      "chapters": [1], "note": "已废止旧版（1993年），2011年新版随水保法实施"
+    },
+    {
+      "id": "reg_002", "category": "部门规章",
+      "number": "水利部令第49号", "name": "生产建设项目水土保持方案管理办法",
+      "publish_year": 2017, "publisher": "水利部",
+      "effective_date": "2017-09-20",
+      "chapters": [1], "note": "方案编报审批的核心依据"
+    },
+    {
+      "id": "reg_003", "category": "部门规章",
+      "number": "水保[2020]157号", "name": "水利部关于进一步深化放管服改革全面加强水土保持监管的意见",
+      "publish_year": 2020, "publisher": "水利部",
+      "effective_date": "2020-01-01",
+      "chapters": [1, 6], "note": "放管服改革要求"
+    },
+    {
+      "id": "local_001", "category": "地方法规",
+      "number": "", "name": "江苏省水土保持条例",
+      "publish_year": 2014, "publisher": "江苏省人大常委会",
+      "effective_date": "2014-12-01",
+      "chapters": [1], "note": "江苏省地方水保条例"
+    },
+    {
+      "id": "local_002", "category": "地方规范性文件",
+      "number": "苏水保[2020]3号", "name": "江苏省生产建设项目水土保持方案编制和审批管理办法",
+      "publish_year": 2020, "publisher": "江苏省水利厅",
+      "effective_date": "2020-06-01",
+      "chapters": [1, 5, 7], "note": "江苏省方案编审核心文件"
+    },
+    {
+      "id": "local_003", "category": "地方规范性文件",
+      "number": "苏水保[2019]8号", "name": "江苏省水土保持补偿费征收使用管理实施办法",
+      "publish_year": 2019, "publisher": "江苏省财政厅、水利厅",
+      "effective_date": "2019-01-01",
+      "chapters": [7], "note": "补偿费计算依据"
+    },
+    {
+      "id": "local_004", "category": "地方规范性文件",
+      "number": "", "name": "江苏省水土保持规划(2016-2030年)",
+      "publish_year": 2016, "publisher": "江苏省水利厅",
+      "effective_date": "2016-01-01",
+      "chapters": [1, 2], "note": "区域水土保持规划"
+    },
+
+    {
+      "id": "std_001", "category": "国家标准",
+      "number": "GB/T 51240-2018", "name": "生产建设项目水土保持方案编制技术规范",
+      "publish_year": 2018, "publisher": "住建部/水利部",
+      "effective_date": "2018-10-01",
+      "chapters": [1, 2, 3, 4, 5, 6, 7, 8], "note": "★核心标准，全文必引"
+    },
+    {
+      "id": "std_002", "category": "国家标准",
+      "number": "GB 50433-2018", "name": "生产建设项目水土保持技术标准",
+      "publish_year": 2018, "publisher": "住建部/水利部",
+      "effective_date": "2019-04-01",
+      "chapters": [1, 4, 5, 8], "note": "防治指标和措施设计的依据"
+    },
+    {
+      "id": "std_003", "category": "国家标准",
+      "number": "GB/T 50434-2018", "name": "生产建设项目水土流失防治标准",
+      "publish_year": 2018, "publisher": "住建部/水利部",
+      "effective_date": "2019-04-01",
+      "chapters": [1, 8], "note": "六项防治指标目标值的来源"
+    },
+    {
+      "id": "std_004", "category": "国家标准",
+      "number": "GB/T 15773-2008", "name": "水土保持综合治理 验收规范",
+      "publish_year": 2008, "publisher": "国家质检总局",
+      "effective_date": "2009-06-01",
+      "chapters": [6], "note": "验收相关要求"
+    },
+    {
+      "id": "std_005", "category": "行业标准",
+      "number": "SL 277-2002", "name": "水土保持监测技术规程",
+      "publish_year": 2002, "publisher": "水利部",
+      "effective_date": "2002-06-01",
+      "chapters": [6], "note": "监测方法和要求"
+    },
+    {
+      "id": "std_006", "category": "国家标准",
+      "number": "GB 51018-2014", "name": "水土保持工程设计规范",
+      "publish_year": 2014, "publisher": "住建部",
+      "effective_date": "2015-05-01",
+      "chapters": [5, 7], "note": "措施工程设计标准"
+    },
+    {
+      "id": "std_007", "category": "行业标准",
+      "number": "SL 386-2007", "name": "水土保持工程概(估)算编制规定和定额",
+      "publish_year": 2007, "publisher": "水利部",
+      "effective_date": "2007-10-01",
+      "chapters": [7], "note": "造价计算的定额依据"
+    },
+    {
+      "id": "std_008", "category": "国家标准",
+      "number": "GB/T 20465-2006", "name": "水土保持通用术语",
+      "publish_year": 2006, "publisher": "国家质检总局",
+      "effective_date": "2006-12-01",
+      "chapters": [1], "note": "术语定义参考"
+    },
+    {
+      "id": "std_009", "category": "国家标准",
+      "number": "SL 190-2007", "name": "土壤侵蚀分类分级标准",
+      "publish_year": 2007, "publisher": "水利部",
+      "effective_date": "2008-03-01",
+      "chapters": [2, 4], "note": "侵蚀类型和强度分级"
+    },
+    {
+      "id": "std_010", "category": "行业标准",
+      "number": "SL 419-2007", "name": "水土保持试验规程",
+      "publish_year": 2007, "publisher": "水利部",
+      "effective_date": "2008-01-01",
+      "chapters": [6], "note": "监测试验方法"
+    },
+    {
+      "id": "std_011", "category": "国家标准",
+      "number": "GB 50201-2014", "name": "防洪标准",
+      "publish_year": 2014, "publisher": "住建部",
+      "effective_date": "2015-04-01",
+      "chapters": [5], "note": "排水设施设计重现期参考"
+    },
+    {
+      "id": "std_012", "category": "国家标准",
+      "number": "GB 50014-2021", "name": "室外排水设计标准",
+      "publish_year": 2021, "publisher": "住建部",
+      "effective_date": "2021-10-01",
+      "chapters": [5], "note": "暴雨强度公式和排水沟设计参考"
+    },
+    {
+      "id": "std_013", "category": "行业标准",
+      "number": "SL 204-98", "name": "开发建设项目水土保持方案技术规范",
+      "publish_year": 1998, "publisher": "水利部",
+      "effective_date": "1998-10-01",
+      "chapters": [], "note": "旧版规范，已被GB/T 51240-2018替代，但部分地区仍参考"
+    },
+    {
+      "id": "std_014", "category": "国家标准",
+      "number": "GB/T 16453.1~6", "name": "水土保持综合治理技术规范",
+      "publish_year": 2008, "publisher": "国家质检总局",
+      "effective_date": "2009-06-01",
+      "chapters": [5], "note": "6个分册，覆盖各类工程措施技术要求"
+    },
+    {
+      "id": "std_015", "category": "行业标准",
+      "number": "SL 575-2012", "name": "水土保持工程调查与勘测标准",
+      "publish_year": 2012, "publisher": "水利部",
+      "effective_date": "2013-03-01",
+      "chapters": [2], "note": "项目区现场调查要求"
+    },
+
+    {
+      "id": "atlas_001", "category": "图集",
+      "number": "水利部2020版", "name": "全国水土保持区划图",
+      "publish_year": 2020, "publisher": "水利部",
+      "effective_date": "2020-01-01",
+      "chapters": [2, 4], "note": "确定项目所在水土保持分区"
+    },
+    {
+      "id": "atlas_002", "category": "图集",
+      "number": "江苏省2018版", "name": "江苏省水土流失重点防治区划分成果",
+      "publish_year": 2018, "publisher": "江苏省水利厅",
+      "effective_date": "2018-01-01",
+      "chapters": [2], "note": "确定是否属于重点防治区"
+    },
+
+    {
+      "id": "price_001", "category": "造价依据",
+      "number": "", "name": "南通市建设工程造价信息",
+      "publish_year": 2024, "publisher": "南通市住建局",
+      "effective_date": "2024-01-01",
+      "chapters": [7], "note": "人工/材料/机械单价来源"
+    },
+    {
+      "id": "price_002", "category": "造价依据",
+      "number": "", "name": "江苏省水利工程概预算编制规定",
+      "publish_year": 2020, "publisher": "江苏省水利厅",
+      "effective_date": "2020-01-01",
+      "chapters": [7], "note": "费率体系来源"
+    }
+  ],
+
+  "chapter_mapping": {
+    "1": ["law_001", "law_002", "law_003", "law_004", "reg_001", "reg_002", "reg_003", "local_001", "local_002", "local_004", "std_001", "std_002", "std_003", "std_008"],
+    "2": ["std_001", "std_009", "std_015", "atlas_001", "atlas_002"],
+    "3": ["std_001", "std_002", "local_002"],
+    "4": ["std_001", "std_002", "std_009"],
+    "5": ["std_001", "std_002", "std_006", "std_011", "std_012", "std_014", "local_002"],
+    "6": ["std_001", "std_004", "std_005", "std_010", "reg_003"],
+    "7": ["std_001", "std_007", "local_003", "price_001", "price_002"],
+    "8": ["std_001", "std_002", "std_003"]
+  }
+}

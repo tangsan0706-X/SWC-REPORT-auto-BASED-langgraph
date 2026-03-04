@@ -1,0 +1,275 @@
+{
+  "description": "水土保持标准措施库（江苏省房地产类项目）。措施规划师Agent从此库中查询候选措施。",
+  "version": "2024-01",
+  "measures": [
+    {
+      "id": "ENG-001", "name": "排水沟C20(40×40)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "施工生产生活区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.6, "note": "分区周长×0.6" },
+      "priority": "高", "price_ref": "排水沟C20(40×40)",
+      "description": "C20现浇混凝土矩形排水沟，内径40cm×40cm，用于场地排水。"
+    },
+    {
+      "id": "ENG-002", "name": "排水沟C20(60×60)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.3, "note": "主干排水沟，分区周长×0.3" },
+      "priority": "中", "price_ref": "排水沟C20(60×60)",
+      "description": "C20现浇混凝土矩形排水沟，内径60cm×60cm，主干排水。"
+    },
+    {
+      "id": "ENG-003", "name": "截水沟C20(30×30)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "临时堆土区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.4, "note": "堆土区/基坑周边截水" },
+      "priority": "高", "price_ref": "截水沟C20(30×30)",
+      "description": "C20现浇混凝土截水沟，设于坡顶或堆土区周边拦截径流。"
+    },
+    {
+      "id": "ENG-004", "name": "截水沟C20(40×40)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "临时堆土区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.3, "note": "较大汇水面积截水" },
+      "priority": "中", "price_ref": "截水沟C20(40×40)",
+      "description": "C20现浇混凝土截水沟，内径40cm×40cm。"
+    },
+    {
+      "id": "ENG-005", "name": "沉沙池(2×2×1.5m)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "施工生产生活区", "临时堆土区"],
+      "unit": "座", "quantity_coefficient": { "method": "count_per_area", "factor": 1.5, "note": "每hm²约1.5座" },
+      "priority": "高", "price_ref": "沉沙池(2×2×1.5m)",
+      "description": "砖砌沉沙池，排水沟末端设置，沉淀泥沙后排入市政管网。"
+    },
+    {
+      "id": "ENG-006", "name": "沉沙池(3×3×2m)", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区"],
+      "unit": "座", "quantity_coefficient": { "method": "count_per_area", "factor": 0.5, "note": "汇水面积大时用大池" },
+      "priority": "低", "price_ref": "沉沙池(3×3×2m)",
+      "description": "混凝土沉沙池，用于较大汇水面积。"
+    },
+    {
+      "id": "ENG-007", "name": "透水砖铺装", "type": "工程措施",
+      "applicable_zones": ["道路广场区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.30, "note": "道路区面积×30%人行道" },
+      "priority": "高", "price_ref": "透水砖铺装",
+      "description": "陶瓷透水砖铺装，增加雨水入渗，减少地表径流。"
+    },
+    {
+      "id": "ENG-008", "name": "碎石盲沟", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "绿化工程区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.2, "note": "建筑物基础排水" },
+      "priority": "低", "price_ref": "碎石盲沟",
+      "description": "碎石填充盲沟，用于基础排水和绿地渗透。"
+    },
+    {
+      "id": "ENG-009", "name": "HDPE防渗膜", "type": "工程措施",
+      "applicable_zones": ["临时堆土区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 1.3, "note": "堆土底面积×1.3(含侧面)" },
+      "priority": "高", "price_ref": "HDPE防渗膜",
+      "description": "0.5mm厚HDPE防渗膜，铺设于堆土区底部防止渗漏污染。"
+    },
+    {
+      "id": "ENG-010", "name": "场地平整", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "绿化工程区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 1.0, "note": "分区面积全覆盖" },
+      "priority": "中", "price_ref": "场地平整",
+      "description": "竣工后场地平整，为后续绿化或硬化做准备。"
+    },
+    {
+      "id": "ENG-011", "name": "表土剥离", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "绿化工程区"],
+      "unit": "m³", "quantity_coefficient": { "method": "area_volume", "factor": 0.3, "note": "面积(m²)×0.3m厚度" },
+      "priority": "高", "price_ref": "表土剥离及堆存",
+      "description": "施工前剥离表土30cm，集中堆存用于后期绿化覆土。"
+    },
+    {
+      "id": "ENG-012", "name": "表土回覆", "type": "工程措施",
+      "applicable_zones": ["绿化工程区"],
+      "unit": "m³", "quantity_coefficient": { "method": "area_volume", "factor": 0.3, "note": "绿化面积(m²)×0.3m厚度" },
+      "priority": "高", "price_ref": "表土回覆",
+      "description": "竣工后将堆存表土回覆至绿化区，恢复土壤肥力。"
+    },
+    {
+      "id": "ENG-013", "name": "急流槽C20", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "临时堆土区"],
+      "unit": "m", "quantity_coefficient": { "method": "fixed_per_zone", "factor": 30, "note": "每个有高差的分区约30m" },
+      "priority": "低", "price_ref": "急流槽C20",
+      "description": "C20混凝土急流槽，用于高差较大地段的集中排水。"
+    },
+    {
+      "id": "ENG-014", "name": "浆砌石挡墙", "type": "工程措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区"],
+      "unit": "m³", "quantity_coefficient": { "method": "perimeter_volume", "factor": 0.5, "note": "填方边坡挡墙" },
+      "priority": "低", "price_ref": "浆砌石挡墙",
+      "description": "M7.5浆砌石重力式挡墙，用于填方边坡支护。"
+    },
+    {
+      "id": "ENG-015", "name": "车辆冲洗平台", "type": "工程措施",
+      "applicable_zones": ["施工生产生活区"],
+      "unit": "座", "quantity_coefficient": { "method": "fixed_count", "factor": 1, "note": "每个出入口1座" },
+      "priority": "高", "price_ref": "车辆冲洗平台",
+      "description": "施工出入口车辆冲洗设施，含冲洗槽和沉淀池。"
+    },
+
+    {
+      "id": "VEG-001", "name": "撒播草籽(混播)", "type": "植物措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "绿化工程区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.15, "note": "分区面积×15%可绿化裸地" },
+      "priority": "中", "price_ref": "撒播草籽(混播)",
+      "description": "黑麦草+高羊茅混播，用于裸露土地快速覆绿。"
+    },
+    {
+      "id": "VEG-002", "name": "综合绿化(乔灌草)", "type": "植物措施",
+      "applicable_zones": ["绿化工程区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.85, "note": "绿化区面积×85%实际种植" },
+      "priority": "高", "price_ref": "综合绿化(乔灌草)",
+      "description": "乔灌草三层结构综合绿化，含整地、种植、养护。"
+    },
+    {
+      "id": "VEG-003", "name": "屋顶绿化", "type": "植物措施",
+      "applicable_zones": ["建(构)筑物区"],
+      "unit": "m²", "quantity_coefficient": { "method": "building_roof", "factor": 0.15, "note": "建筑面积×15%屋顶可绿化" },
+      "priority": "中", "price_ref": "屋顶绿化",
+      "description": "轻型屋顶绿化，含防水层、排水板、种植土、植被。"
+    },
+    {
+      "id": "VEG-004", "name": "行道树种植", "type": "植物措施",
+      "applicable_zones": ["道路广场区"],
+      "unit": "株", "quantity_coefficient": { "method": "road_length", "factor": 0.15, "note": "道路长度/6m间距，双侧" },
+      "priority": "中", "price_ref": "行道树种植",
+      "description": "香樟/桂花等常绿乔木，胸径8cm，间距6m双侧种植。"
+    },
+    {
+      "id": "VEG-005", "name": "建筑物周边绿化", "type": "植物措施",
+      "applicable_zones": ["建(构)筑物区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.12, "note": "建筑物区面积×12%周边绿化带" },
+      "priority": "高", "price_ref": "建筑物周边绿化",
+      "description": "建筑物周边绿化带，灌木+草坪组合。"
+    },
+    {
+      "id": "VEG-006", "name": "栽植乔木", "type": "植物措施",
+      "applicable_zones": ["绿化工程区", "道路广场区"],
+      "unit": "株", "quantity_coefficient": { "method": "area_count", "factor": 25, "note": "每hm²约25株" },
+      "priority": "中", "price_ref": "栽植乔木",
+      "description": "常绿/落叶乔木混交种植，胸径5cm。"
+    },
+    {
+      "id": "VEG-007", "name": "栽植灌木", "type": "植物措施",
+      "applicable_zones": ["绿化工程区", "建(构)筑物区", "道路广场区"],
+      "unit": "株", "quantity_coefficient": { "method": "area_count", "factor": 200, "note": "每hm²约200株" },
+      "priority": "中", "price_ref": "栽植灌木",
+      "description": "红叶石楠/金边黄杨等常绿灌木，冠幅30cm。"
+    },
+    {
+      "id": "VEG-008", "name": "铺设草皮", "type": "植物措施",
+      "applicable_zones": ["绿化工程区", "道路广场区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.20, "note": "分区面积×20%草坪" },
+      "priority": "中", "price_ref": "铺设草皮",
+      "description": "百慕大草皮满铺，用于开放空间快速绿化。"
+    },
+    {
+      "id": "VEG-009", "name": "藤蔓绿化", "type": "植物措施",
+      "applicable_zones": ["建(构)筑物区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "wall_area", "factor": 0.05, "note": "围墙/挡墙面积×5%" },
+      "priority": "低", "price_ref": "藤蔓绿化",
+      "description": "爬山虎/常春藤，用于围墙和挡墙立面绿化。"
+    },
+    {
+      "id": "VEG-010", "name": "液力喷播", "type": "植物措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "临时堆土区"],
+      "unit": "m²", "quantity_coefficient": { "method": "slope_area", "factor": 0.10, "note": "边坡面积，约分区面积×10%" },
+      "priority": "低", "price_ref": "液力喷播",
+      "description": "液力喷播植草，含基材，适用于较陡边坡快速覆绿。"
+    },
+
+    {
+      "id": "TMP-001", "name": "密目安全网覆盖(6针)", "type": "临时措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "施工生产生活区", "临时堆土区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.30, "note": "施工期裸露面积约30%" },
+      "priority": "高", "price_ref": "密目安全网覆盖(6针)",
+      "description": "6针密目安全网，覆盖施工期裸露土面防止扬尘和溅蚀。"
+    },
+    {
+      "id": "TMP-002", "name": "临时排水沟(土质)", "type": "临时措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "施工生产生活区", "临时堆土区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.5, "note": "施工区周边临时排水" },
+      "priority": "高", "price_ref": "临时排水沟(土质)",
+      "description": "开挖土质排水沟，施工期临时排水用，完工后回填。"
+    },
+    {
+      "id": "TMP-003", "name": "临时沉沙池(简易)", "type": "临时措施",
+      "applicable_zones": ["建(构)筑物区", "施工生产生活区", "临时堆土区"],
+      "unit": "座", "quantity_coefficient": { "method": "count_per_area", "factor": 2.0, "note": "每hm²约2座" },
+      "priority": "高", "price_ref": "临时沉沙池(简易)",
+      "description": "挖土成型简易沉沙池，施工期使用。"
+    },
+    {
+      "id": "TMP-004", "name": "施工围挡(彩钢板)", "type": "临时措施",
+      "applicable_zones": ["施工生产生活区"],
+      "unit": "m", "quantity_coefficient": { "method": "site_perimeter", "factor": 1.0, "note": "施工区外围全周长" },
+      "priority": "高", "price_ref": "施工围挡(彩钢板)",
+      "description": "彩钢板围挡H=2m，施工区外围封闭管理。"
+    },
+    {
+      "id": "TMP-005", "name": "临时硬化(碎石)", "type": "临时措施",
+      "applicable_zones": ["施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.60, "note": "施工生活区60%面积硬化" },
+      "priority": "中", "price_ref": "临时硬化(碎石)",
+      "description": "15cm厚碎石临时硬化，施工道路和材料堆场。"
+    },
+    {
+      "id": "TMP-006", "name": "彩条布覆盖", "type": "临时措施",
+      "applicable_zones": ["临时堆土区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 1.2, "note": "堆体表面积≈底面积×1.2" },
+      "priority": "中", "price_ref": "彩条布覆盖",
+      "description": "彩条布覆盖裸露堆土，防雨防尘。"
+    },
+    {
+      "id": "TMP-007", "name": "临时拦挡(编织袋装土)", "type": "临时措施",
+      "applicable_zones": ["临时堆土区", "建(构)筑物区"],
+      "unit": "m", "quantity_coefficient": { "method": "perimeter", "factor": 0.8, "note": "堆土区周边拦挡" },
+      "priority": "高", "price_ref": "临时拦挡(编织袋装土)",
+      "description": "编织袋装土双层码放，堆土区四周拦挡防止水土流失。"
+    },
+    {
+      "id": "TMP-008", "name": "洒水降尘", "type": "临时措施",
+      "applicable_zones": ["建(构)筑物区", "道路广场区", "施工生产生活区"],
+      "unit": "m²·次", "quantity_coefficient": { "method": "area_frequency", "factor": 180, "note": "面积×180次/年(每天约1次×半年)" },
+      "priority": "中", "price_ref": "洒水降尘",
+      "description": "洒水车定期洒水降尘，施工期内每日1-2次。"
+    },
+    {
+      "id": "TMP-009", "name": "防尘网覆盖", "type": "临时措施",
+      "applicable_zones": ["临时堆土区", "施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.50, "note": "裸露面50%需覆盖" },
+      "priority": "中", "price_ref": "防尘网覆盖",
+      "description": "6针加密防尘网，长期裸露区域覆盖。"
+    },
+    {
+      "id": "TMP-010", "name": "临时苫盖(篷布)", "type": "临时措施",
+      "applicable_zones": ["临时堆土区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 1.3, "note": "堆体面积×1.3" },
+      "priority": "中", "price_ref": "临时苫盖(篷布)",
+      "description": "加厚型篷布苫盖，用于堆土区雨季防护。"
+    },
+    {
+      "id": "TMP-011", "name": "车辆冲洗平台", "type": "临时措施",
+      "applicable_zones": ["施工生产生活区"],
+      "unit": "座", "quantity_coefficient": { "method": "fixed_count", "factor": 1, "note": "出入口各1座" },
+      "priority": "高", "price_ref": "车辆冲洗平台",
+      "description": "施工车辆出场冲洗设施，含沉淀循环系统。"
+    },
+    {
+      "id": "TMP-012", "name": "临时拆除", "type": "临时措施",
+      "applicable_zones": ["施工生产生活区"],
+      "unit": "m²", "quantity_coefficient": { "method": "area_ratio", "factor": 0.60, "note": "与临时硬化面积一致" },
+      "priority": "中", "price_ref": "临时拆除费",
+      "description": "施工结束后拆除临时设施、硬化面层等。"
+    }
+  ],
+
+  "zone_minimum_requirements": {
+    "建(构)筑物区":   { "工程措施": ["排水沟/截水沟", "沉沙池"], "植物措施": ["周边绿化/屋顶绿化"], "临时措施": ["覆盖/排水"] },
+    "道路广场区":     { "工程措施": ["排水沟", "透水铺装"], "植物措施": ["行道树/草坪"], "临时措施": ["覆盖/排水"] },
+    "绿化工程区":     { "工程措施": ["表土回覆", "场地平整"], "植物措施": ["综合绿化"], "临时措施": ["覆盖"] },
+    "施工生产生活区": { "工程措施": ["排水沟", "沉沙池", "冲洗平台"], "植物措施": ["撒播草籽"], "临时措施": ["围挡", "硬化", "覆盖"] },
+    "临时堆土区":     { "工程措施": ["截水沟", "防渗膜"], "植物措施": ["撒播草籽"], "临时措施": ["覆盖", "拦挡", "排水"] }
+  }
+}

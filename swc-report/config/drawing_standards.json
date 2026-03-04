@@ -1,0 +1,191 @@
+{
+  "_doc": "预处理的制图标准知识库 — Drawing Agent 直接读取，不依赖 ChromaDB",
+  "_sources": [
+    "SL73_6-2015 水利水电工程制图标准·水土保持图",
+    "江苏省水保方案_标准化图集分类汇总.md",
+    "水土保持措施典型设计图.dwg (典型断面参考)"
+  ],
+
+  "general_rules": {
+    "standard": "SL73_6-2015",
+    "dpi": 300,
+    "font_title": "黑体",
+    "font_label": "仿宋体",
+    "font_size_title": 14,
+    "font_size_label": 9,
+    "font_size_legend": 8,
+    "line_border": {"color": "#333333", "width": 1.5, "style": "solid"},
+    "line_annotation": {"color": "#666666", "width": 0.8, "style": "solid"},
+    "line_terrain": {"color": "#999999", "width": 0.5, "style": "dashed"},
+    "north_arrow": "左上角",
+    "scale_bar": "右下角",
+    "legend": "右下角或下方",
+    "title_bar": "下方居中",
+    "unicode_minus": false,
+    "rcParams": {
+      "font.sans-serif": ["SimHei", "Microsoft YaHei", "DejaVu Sans"],
+      "axes.unicode_minus": false
+    }
+  },
+
+  "zone_boundary_map": {
+    "name": "水土保持防治分区图",
+    "atlas_ref": "1-03",
+    "description": "划分为主体区、施工生活区等，分区覆盖红线内所有区域，无死角",
+    "rules": [
+      "每个分区用不同底色填充(半透明alpha=0.3~0.5)",
+      "分区边界用粗实线(#333333, 1.5pt)",
+      "分区名称+面积标注在分区中心",
+      "需有图例说明各分区颜色含义",
+      "添加指北针和比例尺"
+    ],
+    "zone_colors": {
+      "建(构)筑物区": "#E0E0E0",
+      "道路广场区": "#C8C8C8",
+      "绿化工程区": "#F0F0F0",
+      "施工生产生活区": "#B8B8B8",
+      "临时堆土区": "#D8D8D8"
+    }
+  },
+
+  "measure_layout_map": {
+    "name": "水土保持措施总体布置图",
+    "atlas_ref": "4-04",
+    "description": "报告书最重要的附图，A3幅面，总图叠加所有措施",
+    "rules": [
+      "底层：分区填充(同分区图，alpha降低)",
+      "中层：措施符号按空间位置标注",
+      "顶层：图例、标题栏、指北针、比例尺",
+      "排水沟/截水沟用蓝色线条",
+      "挡墙用红色粗线+标记",
+      "绿化用绿色填充",
+      "临时措施用橙色",
+      "图例分三栏：工程措施/植物措施/临时措施"
+    ]
+  },
+
+  "zone_detail_map": {
+    "name": "分区措施详图",
+    "description": "每个分区的措施详细布置图",
+    "rules": [
+      "只显示单个分区范围",
+      "分区底色填充",
+      "详细标注该分区内每个措施的位置和参数",
+      "措施用对应符号表示(参考measure_symbols)",
+      "尺寸标注用引线+箭头",
+      "字体大小略大于总图(label 10pt)"
+    ]
+  },
+
+  "typical_section": {
+    "name": "典型工程断面图",
+    "atlas_ref": "2-01, 2-02, 2-05",
+    "description": "工程措施的典型横断面设计图",
+    "rules": [
+      "按实际比例绘制断面",
+      "混凝土用斜线填充(///)",
+      "土体用点阵填充(...)",
+      "浆砌石用交叉填充(xxx)",
+      "尺寸标注清晰(宽度/深度/壁厚/坡比)",
+      "材料标注在断面旁",
+      "地面线用粗实线",
+      "基础线用虚线"
+    ],
+    "structures": {
+      "排水沟": {
+        "shape": "矩形或梯形",
+        "jiangsu_note": "平原多用矩形砖砌，丘陵多用梯形土沟",
+        "params": ["底宽(cm)", "深度(cm)", "壁厚(cm)", "底板厚(cm)"],
+        "material": "C20混凝土",
+        "hatch": {"concrete": "///", "soil": "..."},
+        "color": {"concrete": "#B0BEC5", "water_line": "#1E88E5", "soil": "#8D6E63"}
+      },
+      "截水沟": {
+        "shape": "梯形",
+        "params": ["底宽(cm)", "深度(cm)", "坡比"],
+        "material": "C20混凝土",
+        "hatch": {"concrete": "///"},
+        "color": {"concrete": "#B0BEC5", "water_line": "#0288D1"}
+      },
+      "沉沙池": {
+        "shape": "矩形(平面+剖面)",
+        "atlas_ref": "2-02",
+        "jiangsu_note": "三级沉淀，需标注容积计算，符合南京暴雨强度",
+        "params": ["长(m)", "宽(m)", "深(m)", "壁厚(cm)", "底板厚(cm)"],
+        "material": "C20混凝土",
+        "hatch": {"concrete": "///", "water": "~~~"},
+        "color": {"concrete": "#B0BEC5", "water": "#42A5F5"}
+      },
+      "挡土墙": {
+        "shape": "重力式/悬臂式",
+        "atlas_ref": "2-05",
+        "jiangsu_note": "必须画出基础埋深和墙后回填土材质",
+        "params": ["墙高(m)", "顶宽(m)", "底宽(m)", "坡比", "基础埋深(m)"],
+        "material": "浆砌石",
+        "hatch": {"masonry": "xxx", "backfill": "...", "foundation": "///"},
+        "color": {"masonry": "#D32F2F", "backfill": "#8D6E63", "foundation": "#757575"}
+      },
+      "车辆冲洗平台": {
+        "shape": "平面图",
+        "atlas_ref": "2-03",
+        "jiangsu_note": "江苏省五项直管重点检查项目",
+        "components": ["洗车槽", "格栅", "喷头", "沉淀池"],
+        "color": {"platform": "#6A1B9A", "water": "#42A5F5"}
+      }
+    }
+  },
+
+  "vegetation_measures": {
+    "atlas_ref": "3-01 ~ 3-04",
+    "items": {
+      "临时堆土防护": {
+        "ref": "3-01",
+        "description": "堆土形状，底部拦挡，表面防尘网覆盖",
+        "draw_method": "梯形土堆剖面 + 覆盖层标注"
+      },
+      "施工围挡": {
+        "ref": "3-02",
+        "description": "围挡高度2.5m，砖砌基础",
+        "draw_method": "立面图，标注高度和基础"
+      },
+      "透水铺装": {
+        "ref": "3-03",
+        "jiangsu_note": "响应海绵城市要求",
+        "description": "透水砖+级配碎石",
+        "draw_method": "层叠剖面图"
+      },
+      "种植穴": {
+        "ref": "3-04",
+        "jiangsu_note": "南京黏土透气差，需设计碎石盲沟",
+        "description": "树坑尺寸、换土要求",
+        "draw_method": "剖面图，标注坑径/深/换土层"
+      }
+    }
+  },
+
+  "dwg_reference": {
+    "file": "水土保持措施典型设计图.dwg",
+    "description": "CAD典型设计图，包含标准断面和措施布置参考",
+    "contents": [
+      "排水沟C20标准断面(40×40cm, 60×60cm)",
+      "截水沟C20标准断面(30×30cm, 40×40cm)",
+      "沉沙池标准设计(2×2×1.5m, 3×3×2m)",
+      "浆砌石挡土墙标准断面",
+      "急流槽C20标准断面",
+      "车辆冲洗平台平面布置",
+      "临时排水系统布置",
+      "绿化种植设计详图"
+    ],
+    "drawing_conventions": {
+      "line_weight_border": 0.7,
+      "line_weight_outline": 0.35,
+      "line_weight_dim": 0.18,
+      "dim_text_height": 3.5,
+      "hatch_concrete": "AR-CONC",
+      "hatch_soil": "EARTH",
+      "hatch_stone": "AR-RSTON",
+      "scale_section": "1:20 ~ 1:50",
+      "scale_layout": "1:500 ~ 1:1000"
+    }
+  }
+}

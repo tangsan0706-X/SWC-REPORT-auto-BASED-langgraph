@@ -1,0 +1,33 @@
+# === 核心依赖 (pipeline 运行必需) ===
+openai>=1.12.0
+docxtpl>=0.16.0
+python-docx>=1.0.0
+chromadb>=0.4.0
+matplotlib>=3.8.0
+pandas>=2.1.0
+numpy>=1.26.0,<2.0.0             # numpy 2.x 与 matplotlib 不兼容
+lxml>=4.9.0
+
+# === Web 服务 ===
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# === VL 文档处理 (可选) ===
+pdf2image>=1.16.0             # PDF 转图片 (需要系统安装 poppler)
+
+# === CAD 文件处理 (可选) ===
+ezdxf[draw]>=0.18.0           # DXF 读取 + matplotlib 渲染 (DWG需ODA转换器)
+
+# === GIS 文件处理 (可选) ===
+geopandas>=0.14.0             # Shapefile/GeoJSON 读取, 面积计算
+shapely>=2.0.0                # 几何运算
+
+# === RAG 语料构建 (可选) ===
+pdfplumber>=0.10.0
+sentence-transformers>=2.3.0
+# paddleocr>=2.7.0          # OCR, 需要时手动安装
+
+# === RAG v2 (混合检索 + 重排序) ===
+FlagEmbedding>=1.2.0          # BGE-M3 embedding + BGE-Reranker-v2-m3
+magic-pdf>=0.9.0              # MinerU PDF→Markdown (需系统依赖, 可选)
