@@ -775,3 +775,68 @@ def polyline_trim(pts: Polyline, start_ratio: float, end_ratio: float) -> Polyli
         accum = next_accum
 
     return result if len(result) >= 2 else list(pts)
+
+
+def buffer_polygon(pts: Polygon, distance: float) -> Polygon:
+    """多边形法向外扩/内缩 (正值外扩, 负值内缩)。
+
+    沿每条边的外法向偏移指定距离, 计算相邻偏移线的交点。
+    简单实现, 适用于凸多边形和近凸多边形。
+    """
+    if len(pts) < 3 or abs(distance) < 1e-12:
+        return list(pts)
+
+    n = len(pts)
+    # 确保逆时针方向 (正面积 = 逆时针)
+    area = _signed_area(pts)
+    ordered = list(pts) if area > 0 else list(reversed(pts))
+    if distance < 0:
+        # 内缩 = 反转方向后外扩
+        ordered = list(reversed(ordered))
+        distance = -distance
+
+    # 计算每条边的外法向偏移线 (两个端点)
+    offset_lines = []
+    for i in range(n):
+        p0 = ordered[i]
+        p1 = ordered[(i + 1) % n]
+        dx = p1[0] - p0[0]
+        dy = p1[1] - p0[1]
+        seg_len = math.hypot(dx, dy)
+        if seg_len < 1e-12:
+            offset_lines.append((p0, p1))
+            continue
+        # 外法向 (逆时针多边形: 左侧 = 外侧)
+        nx = -dy / seg_len * distance
+        ny = dx / seg_len * distance
+        offset_lines.append(
+            ((p0[0] + nx, p0[1] + ny), (p1[0] + nx, p1[1] + ny))
+        )
+
+    # 相邻偏移线求交点
+    result = []
+    for i in range(n):
+        a0, a1 = offset_lines[i]
+        b0, b1 = offset_lines[(i + 1) % n]
+        inter = _line_line_intersection(a0, a1, b0, b1)
+        if inter:
+            result.append(inter)
+        else:
+            result.append(a1)
+
+    return result
+
+
+def _line_line_intersection(
+    a0: Point, a1: Point, b0: Point, b1: Point,
+) -> Optional[Point]:
+    """两条直线 (非线段) 的交点。返回 None 表示平行。"""
+    d1x = a1[0] - a0[0]
+    d1y = a1[1] - a0[1]
+    d2x = b1[0] - b0[0]
+    d2y = b1[1] - b0[1]
+    denom = d1x * d2y - d1y * d2x
+    if abs(denom) < 1e-12:
+        return None
+    t = ((b0[0] - a0[0]) * d2y - (b0[1] - a0[1]) * d2x) / denom
+    return (a0[0] + t * d1x, a0[1] + t * d1y)

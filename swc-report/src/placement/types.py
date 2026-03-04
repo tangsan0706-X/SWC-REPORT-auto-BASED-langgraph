@@ -58,6 +58,7 @@ class PlacementResult:
     measure_type: MeasureType = MeasureType.AREA
     strategy: Strategy = Strategy.AREA_FILL
     polyline: Optional[List[Tuple[float, float]]] = None
+    polylines: Optional[List[List[Tuple[float, float]]]] = None
     polygon: Optional[List[Tuple[float, float]]] = None
     points: Optional[List[Tuple[float, float]]] = None
     label_anchor: Optional[Tuple[float, float]] = None
@@ -77,6 +78,8 @@ class PlacementResult:
         }
         if self.polyline:
             result["polyline"] = self.polyline
+        if self.polylines:
+            result["polylines"] = self.polylines
         if self.polygon:
             result["polygon"] = self.polygon
         if self.points:

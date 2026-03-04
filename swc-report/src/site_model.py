@@ -214,8 +214,10 @@ class SiteModelBuilder:
                 properties={"category": seg.category, "layer": seg.source_layer},
             ))
 
-        # 全局障碍物: 建筑
+        # 全局障碍物: 建筑 (过滤围墙/小构筑物)
         for bldg in getattr(cad_site_features, 'building_footprints', []):
+            if bldg.area < 50.0:
+                continue
             self._model.global_obstacles.append(Obstacle(
                 polygon=list(bldg.points),
                 label=f"building_{bldg.category}",

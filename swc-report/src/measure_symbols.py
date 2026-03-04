@@ -61,6 +61,9 @@ MEASURE_STYLES: dict[str, dict] = {
     "临时苫盖(篷布)":      {"type": "fill",  "color": "#BBBBBB", "alpha": 0.2, "hatch": "---", "label": "临时苫盖", "color_professional": "#DAA520"},
     "车辆冲洗平台(临时)":  {"type": "point", "color": "#444444", "marker": "D", "size": 80,  "label": "冲洗平台(临时)", "color_professional": "#808080"},
     "临时拆除":            {"type": "fill",  "color": "#D0D0D0", "alpha": 0.15, "hatch": None, "label": "临时拆除", "color_professional": "#C0C0C0"},
+
+    # ── 监测点位 ──
+    "监测点位":            {"type": "point", "color": "#000000", "marker": "s", "size": 120, "label": "监测点位", "color_professional": "#FF4500"},
 }
 
 
@@ -95,10 +98,9 @@ def get_style(measure_name: str, professional: bool = True) -> dict:
 
     if professional and "color_professional" in style:
         style = {**style, "color": style["color_professional"]}
-        # professional 模式下填充措施提升 alpha, 去掉 hatch
+        # professional 模式下填充措施提升 alpha, 保留 hatch 图案
         if style.get("type") == "fill":
-            style["alpha"] = max(style.get("alpha", 0.3), 0.35)
-            style["hatch"] = None
+            style["alpha"] = max(style.get("alpha", 0.3), 0.40)
     return style
 
 
@@ -335,6 +337,7 @@ MEASURE_CATEGORY_MAP: dict[str, str] = {
     "绿化": "植物措施", "草籽": "植物措施", "乔木": "植物措施",
     "灌木": "植物措施", "草皮": "植物措施", "藤蔓": "植物措施",
     "液力喷播": "植物措施", "屋顶绿化": "植物措施", "行道树": "植物措施",
+    "监测点": "工程措施",
     "临时排水": "临时措施", "临时沉沙": "临时措施", "围挡": "临时措施",
     "安全网": "临时措施", "密目": "临时措施", "彩条布": "临时措施",
     "苫盖": "临时措施", "防尘网": "临时措施", "临时拦挡": "临时措施",

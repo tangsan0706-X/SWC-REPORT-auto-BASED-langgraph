@@ -211,10 +211,20 @@ class LinkageResolver:
 
     @staticmethod
     def _get_downstream_end(result: PlacementResult) -> Optional[Tuple[float, float]]:
-        """获取措施下游端 (排水沟末端)。"""
-        if result.polyline and len(result.polyline) >= 2:
-            return result.polyline[-1]
-        return None
+        """获取措施下游端 (排水沟末端)。多段线时选最下游端点。"""
+        endpoints = []
+        if result.polylines:
+            for pl in result.polylines:
+                if len(pl) >= 2:
+                    endpoints.append(pl[-1])
+                    endpoints.append(pl[0])
+        elif result.polyline and len(result.polyline) >= 2:
+            endpoints.append(result.polyline[-1])
+            endpoints.append(result.polyline[0])
+        if not endpoints:
+            return None
+        # 选 y 值最小的 (下游, CAD 坐标系通常 y 向上)
+        return min(endpoints, key=lambda p: p[1])
 
     @staticmethod
     def _compute_link_line(

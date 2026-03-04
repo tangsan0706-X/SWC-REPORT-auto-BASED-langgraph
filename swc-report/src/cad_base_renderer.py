@@ -75,9 +75,8 @@ class CadGeometry:
 _LAYER_KEYWORDS: list[tuple[str, list[str]]] = [
     ("building", [
         "建筑", "build", "bldg", "buid", "house", "构筑", "结构", "struct",
-        "wall", "墙", "柱", "column", "arch", "foundation", "基础",
         "地下室", "basement", "roof", "屋顶", "楼梯", "stair",
-        "flor", "floor", "elev", "cons", "fenc",
+        "flor", "floor",
     ]),
     ("road", [
         "道路", "road", "path", "drive", "drwy", "车道", "人行", "sidewalk",

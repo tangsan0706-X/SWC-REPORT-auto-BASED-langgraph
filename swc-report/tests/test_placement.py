@@ -344,7 +344,7 @@ class TestPlacers:
         result = place_monitoring_points(clipper, zone, "监测点位")
         assert not result.skipped
         assert result.points is not None
-        assert len(result.points) == 5  # 5类监测点
+        assert len(result.points) == 2  # 上游对照 + 下游影响
 
     def test_place_rainwater_tank(self):
         from src.placement.placers import place_rainwater_tank

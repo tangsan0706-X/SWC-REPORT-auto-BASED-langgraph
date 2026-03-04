@@ -820,7 +820,10 @@ class MeasureMapRenderer:
         if self._cad_renderer:
             self._cad_renderer.render_foreground(ax, highlight_boundary=True)
 
-        # 2. 分区用半透明边界线标识 (不再填充矩形)
+        # 2. 分区用半透明边界线标识 (在建筑处挖洞)
+        # 收集所有建筑多边形 (用于分区色块挖洞)
+        _all_buildings = self._collect_building_polygons()
+
         for z in self.zones:
             name = z["name"]
             geom = self._zone_geometries.get(name)
@@ -829,29 +832,11 @@ class MeasureMapRenderer:
             color = get_zone_color(name, professional=True)
             if geom["type"] == "gis":
                 self._plot_gis_polygon(ax, geom["geometry"], color, name, alpha=0.2)
-            elif geom["type"] == "cad":
+            elif geom["type"] == "cad" or ("polygon" in geom and len(geom.get("polygon", [])) >= 3):
                 polygon = geom["polygon"]
-                xs = [p[0] for p in polygon] + [polygon[0][0]]
-                ys = [p[1] for p in polygon] + [polygon[0][1]]
-                # 半透明填充 + 彩色实线边界
-                ax.fill(xs, ys, facecolor=color, edgecolor=color,
-                        linewidth=1.8, alpha=0.25, linestyle="-",
-                        zorder=ZORDER["zone_fill"])
-                ax.text(geom["centroid"][0], geom["centroid"][1],
-                        name, ha="center", va="center",
-                        fontsize=8, fontweight="bold", color="#333",
-                        bbox=dict(boxstyle="round,pad=0.2",
-                                  facecolor="white", alpha=0.85, edgecolor=color,
-                                  linewidth=0.8),
-                        zorder=ZORDER["labels"])
-            elif "polygon" in geom and len(geom.get("polygon", [])) >= 3:
-                # site_model 或其他带 polygon 的类型 → 使用真实多边形
-                polygon = geom["polygon"]
-                xs = [p[0] for p in polygon] + [polygon[0][0]]
-                ys = [p[1] for p in polygon] + [polygon[0][1]]
-                ax.fill(xs, ys, facecolor=color, edgecolor=color,
-                        linewidth=1.8, alpha=0.25, linestyle="-",
-                        zorder=ZORDER["zone_fill"])
+                self._draw_zone_fill_with_holes(
+                    ax, polygon, color, _all_buildings,
+                    alpha=0.25, zorder=ZORDER["zone_fill"])
                 ax.text(geom["centroid"][0], geom["centroid"][1],
                         name, ha="center", va="center",
                         fontsize=8, fontweight="bold", color="#333",
@@ -924,6 +909,7 @@ class MeasureMapRenderer:
         _skip = skip_tags or set()
         results = {}
         dpi = MAP_DEFAULTS["dpi"]
+        _all_buildings = self._collect_building_polygons()
 
         # 按分区分组措施
         zone_measures = {}
@@ -954,16 +940,16 @@ class MeasureMapRenderer:
                 self._cad_renderer.render_foreground(ax, crop_bounds=crop,
                                                       highlight_boundary=False)
 
-            # 分区边界高亮 (粗彩色边框 + 浅填充)
+            # 分区边界高亮 (粗彩色边框 + 浅填充, 建筑处挖洞)
             color = get_zone_color(name, professional=True)
             if geom["type"] == "gis":
                 self._plot_gis_polygon(ax, geom["geometry"], color, name, alpha=0.2)
             elif "polygon" in geom and len(geom.get("polygon", [])) >= 3:
                 polygon = geom["polygon"]
+                self._draw_zone_fill_with_holes(
+                    ax, polygon, color, _all_buildings, alpha=0.15)
                 xs = [p[0] for p in polygon] + [polygon[0][0]]
                 ys = [p[1] for p in polygon] + [polygon[0][1]]
-                ax.fill(xs, ys, facecolor=color, edgecolor=color,
-                        linewidth=2.5, alpha=0.15)
                 ax.plot(xs, ys, color=color, linewidth=2.5,
                         linestyle="-", zorder=8)
 
@@ -1123,6 +1109,57 @@ class MeasureMapRenderer:
         except Exception as e:
             logger.warning(f"GIS 多边形绘制失败 ({name}): {e}")
 
+    def _collect_building_polygons(self) -> list:
+        """收集所有建筑多边形 (从 SiteModel 或 PlacementEngine)。"""
+        buildings = []
+        resolver = self._resolver
+        if resolver and hasattr(resolver, '_model'):
+            model = resolver._model
+            for z in model.zones.values():
+                for obs in z.obstacles:
+                    if "building" in obs.label and len(obs.polygon) >= 3:
+                        buildings.append(obs.polygon)
+        return buildings
+
+    @staticmethod
+    def _draw_zone_fill_with_holes(ax, polygon, color, buildings,
+                                    alpha=0.25, zorder=2):
+        """在分区多边形上绘制填充, 在建筑位置挖洞。"""
+        from matplotlib.path import Path as MplPath
+        from matplotlib.patches import PathPatch
+        from src.geo_utils import point_in_polygon
+
+        # 找在此分区内的建筑
+        buildings_in_zone = []
+        for bpoly in buildings:
+            from src.geo_utils import polygon_centroid as _pc
+            bc = _pc(bpoly)
+            if point_in_polygon(bc, polygon):
+                buildings_in_zone.append(bpoly)
+
+        if not buildings_in_zone:
+            # 无建筑, 直接填充
+            xs = [p[0] for p in polygon] + [polygon[0][0]]
+            ys = [p[1] for p in polygon] + [polygon[0][1]]
+            ax.fill(xs, ys, facecolor=color, edgecolor=color,
+                    linewidth=1.8, alpha=alpha, linestyle="-", zorder=zorder)
+            return
+
+        # 外圈: 分区边界 (逆时针 = 正方向)
+        verts = list(polygon) + [polygon[0]]
+        codes = [MplPath.MOVETO] + [MplPath.LINETO] * (len(polygon) - 1) + [MplPath.CLOSEPOLY]
+
+        # 内圈: 每个建筑轮廓 (顺时针 = 挖洞)
+        for bpoly in buildings_in_zone:
+            rev = list(reversed(bpoly))
+            verts += rev + [rev[0]]
+            codes += [MplPath.MOVETO] + [MplPath.LINETO] * (len(rev) - 1) + [MplPath.CLOSEPOLY]
+
+        path = MplPath(verts, codes)
+        patch = PathPatch(path, facecolor=color, edgecolor=color,
+                          linewidth=1.8, alpha=alpha, linestyle="-", zorder=zorder)
+        ax.add_patch(patch)
+
     def _draw_measure(self, ax, measure: dict, style: dict,
                        zone_geom: dict, legend_handles: dict,
                        detail: bool = False, label_placer: LabelPlacer | None = None):
@@ -1205,17 +1242,20 @@ class MeasureMapRenderer:
         # 获取标签锚点 (label_anchor)
         label_anchor = resolved.get("label_anchor")
 
-        if "polyline" in resolved:
-            pts = resolved["polyline"]
-            if len(pts) >= 2:
-                lw = style.get("linewidth", 2.0)
-                # 全局图上线宽加粗以确保可见 (detail=False 时)
-                if not detail:
-                    lw = max(lw * 2.0, 4.0)
-                ls = style.get("linestyle", "-")
-                xs = [p[0] for p in pts]
-                ys = [p[1] for p in pts]
-                # 白色底层描边 (增加对比度)
+        # ── 多段线渲染 (polylines) ──
+        if "polylines" in resolved:
+            all_polylines = resolved["polylines"]
+            lw = style.get("linewidth", 2.0)
+            if not detail:
+                lw = max(lw * 2.0, 4.0)
+            ls = style.get("linestyle", "-")
+            longest_seg = None
+            longest_len = 0.0
+            for pl_pts in all_polylines:
+                if len(pl_pts) < 2:
+                    continue
+                xs = [p[0] for p in pl_pts]
+                ys = [p[1] for p in pl_pts]
                 ax.plot(xs, ys, color="white", linewidth=lw + 2,
                         linestyle="-", zorder=ZORDER["measure_line"] - 0.5,
                         solid_capstyle="round")
@@ -1223,7 +1263,50 @@ class MeasureMapRenderer:
                                 linestyle=ls, zorder=ZORDER["measure_line"])
                 if label not in legend_handles:
                     legend_handles[label] = line
-                # 方向箭头 (在线中间位置)
+                # 记录最长段
+                seg_len = sum(
+                    math.hypot(pl_pts[i+1][0]-pl_pts[i][0], pl_pts[i+1][1]-pl_pts[i][1])
+                    for i in range(len(pl_pts)-1)
+                )
+                if seg_len > longest_len:
+                    longest_len = seg_len
+                    longest_seg = pl_pts
+            # 标签只放一次 (最长段中点)
+            if longest_seg and not label_anchor:
+                label_anchor = longest_seg[len(longest_seg) // 2]
+            if label_anchor:
+                if detail:
+                    qty = measure.get("数量", "")
+                    unit = measure.get("单位", "")
+                    lbl_text = self._safe_text(f"{label}\n{qty}{unit}")
+                    if label_placer:
+                        label_placer.add(label_anchor[0], label_anchor[1], lbl_text)
+                    else:
+                        ax.annotate(
+                            lbl_text, xy=label_anchor,
+                            fontsize=7, ha="center",
+                            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8),
+                            zorder=ZORDER["labels"],
+                        )
+                elif label_placer:
+                    label_placer.add(label_anchor[0], label_anchor[1], label, fontsize=6)
+
+        elif "polyline" in resolved:
+            pts = resolved["polyline"]
+            if len(pts) >= 2:
+                lw = style.get("linewidth", 2.0)
+                if not detail:
+                    lw = max(lw * 2.0, 4.0)
+                ls = style.get("linestyle", "-")
+                xs = [p[0] for p in pts]
+                ys = [p[1] for p in pts]
+                ax.plot(xs, ys, color="white", linewidth=lw + 2,
+                        linestyle="-", zorder=ZORDER["measure_line"] - 0.5,
+                        solid_capstyle="round")
+                line, = ax.plot(xs, ys, color=color, linewidth=lw,
+                                linestyle=ls, zorder=ZORDER["measure_line"])
+                if label not in legend_handles:
+                    legend_handles[label] = line
                 if len(pts) >= 3:
                     mid = len(pts) // 2
                     dx = pts[mid][0] - pts[mid - 1][0]
@@ -1255,18 +1338,19 @@ class MeasureMapRenderer:
         elif "polygon" in resolved:
             pts = resolved["polygon"]
             if len(pts) >= 3:
-                alpha = 0.45 if detail else 0.35  # 全局图稍透明, 详图更深
+                alpha = 0.55 if detail else 0.45
                 xs = [p[0] for p in pts] + [pts[0][0]]
                 ys = [p[1] for p in pts] + [pts[0][1]]
-                # 彩色填充 + 深色边框
                 import matplotlib.colors as mcolors
                 try:
                     rgb = mcolors.to_rgb(color)
-                    edge_color = tuple(max(0, c * 0.6) for c in rgb)
+                    edge_color = tuple(max(0, c * 0.5) for c in rgb)
                 except Exception:
                     edge_color = color
+                hatch_pattern = style.get("hatch", None)
                 ax.fill(xs, ys, facecolor=color, edgecolor=edge_color,
-                        linewidth=1.2, alpha=alpha, zorder=ZORDER["measure_area"])
+                        linewidth=2.5, alpha=alpha, hatch=hatch_pattern,
+                        zorder=ZORDER["measure_area"])
                 if label not in legend_handles:
                     legend_handles[label] = mpatches.Patch(
                         facecolor=color, edgecolor=edge_color,
@@ -1293,14 +1377,30 @@ class MeasureMapRenderer:
             marker = style.get("marker", "o")
             size = style.get("size", 80)
             if not detail:
-                size = max(size * 1.5, 120)  # 全局图上放大点标记
+                size = max(size * 1.5, 120)
+
+            # 监测点: 摄像头组合标记 (方块机身 + 白色圆镜头)
+            is_monitor = "监测" in label or "监测" in measure_name
             for px, py in pts:
-                ax.scatter(px, py, c=color, marker=marker, s=size,
-                           zorder=ZORDER["measure_point"], edgecolors="#333", linewidths=0.8)
+                if is_monitor:
+                    ax.scatter(px, py, c=color, marker='s', s=size * 1.5,
+                               zorder=ZORDER["measure_point"], edgecolors="#333",
+                               linewidths=1.0)
+                    ax.scatter(px, py, c='white', marker='o', s=size * 0.3,
+                               zorder=ZORDER["measure_point"] + 0.1)
+                else:
+                    ax.scatter(px, py, c=color, marker=marker, s=size,
+                               zorder=ZORDER["measure_point"], edgecolors="#333",
+                               linewidths=0.8)
             if label not in legend_handles and pts:
-                legend_handles[label] = ax.scatter(
-                    [], [], c=color, marker=marker, s=size,
-                    edgecolors="#333", linewidths=0.8, label=label)
+                if is_monitor:
+                    legend_handles[label] = ax.scatter(
+                        [], [], c=color, marker='s', s=size * 1.5,
+                        edgecolors="#333", linewidths=1.0, label=label)
+                else:
+                    legend_handles[label] = ax.scatter(
+                        [], [], c=color, marker=marker, s=size,
+                        edgecolors="#333", linewidths=0.8, label=label)
             if not label_anchor and pts:
                 label_anchor = pts[0]
             if detail and label_anchor:

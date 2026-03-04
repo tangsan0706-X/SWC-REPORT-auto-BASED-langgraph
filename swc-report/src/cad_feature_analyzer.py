@@ -278,6 +278,7 @@ class CadFeatureAnalyzer:
                 continue
 
             new_cat = None
+            dxf_color = (ent.properties or {}).get("dxf_color")
 
             if ent.closed and len(pts) >= 3:
                 area = _shoelace_area(pts)
@@ -287,8 +288,11 @@ class CadFeatureAnalyzer:
                 aspect = max(w, h) / min(w, h) if min(w, h) > 0.1 else 999
                 n_verts = len(pts)
 
+                # 黄色闭合多边形 → 建筑 (CAD惯例: ACI 2 = yellow)
+                if dxf_color == 2 and area > 10:
+                    new_cat = "building"
                 # 建筑: 闭合矩形, 面积适中, 顶点少, 长宽比小
-                if 30 < area < 15000 and n_verts <= 10 and aspect < 5:
+                elif 100 < area < 15000 and n_verts <= 12 and aspect < 4:
                     new_cat = "building"
                 # 道路面: 闭合, 面积适中, 长条形
                 elif 50 < area < 20000 and aspect >= 3 and n_verts <= 20:
@@ -1243,7 +1247,13 @@ class CadFeatureAnalyzer:
             if not ent.closed or len(ent.points) < 3:
                 continue
             area = _shoelace_area(ent.points)
-            if area < 1.0:  # 太小的忽略
+            dxf_color = (ent.properties or {}).get("dxf_color")
+            # 黄色(ACI=2)是CAD建筑强信号, 门槛降至10m²; 其它建筑保持50m²过滤围墙
+            if category == "building":
+                min_area = 10.0 if dxf_color == 2 else 50.0
+            else:
+                min_area = 1.0
+            if area < min_area:
                 continue
             centroid = _polygon_centroid(ent.points)
             bounds = _points_bounds(ent.points)

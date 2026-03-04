@@ -147,6 +147,11 @@ class CollisionResolver:
         )
         if result.polyline:
             new.polyline = [(p[0] + dx, p[1] + dy) for p in result.polyline]
+        if result.polylines:
+            new.polylines = [
+                [(p[0] + dx, p[1] + dy) for p in pl]
+                for pl in result.polylines
+            ]
         if result.polygon:
             new.polygon = [(p[0] + dx, p[1] + dy) for p in result.polygon]
         if result.points:

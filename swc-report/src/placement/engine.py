@@ -113,6 +113,9 @@ class PlacementEngine:
         # Phase 3.5: 边界 clamp — 确保措施在场地边界内
         result = self._clamp_to_boundary(result)
 
+        # Phase 3.6: 建筑排斥 — 措施不得覆盖建筑
+        result = self._avoid_buildings(result)
+
         # 注册
         key = f"{zone_id}::{measure_name}"
         self._registry[key] = result
@@ -200,8 +203,9 @@ class PlacementEngine:
         for key, result in self._registry.items():
             zone_id, name = key.split("::", 1) if "::" in key else (key, "")
             status = "OK" if not result.skipped else f"SKIP({result.skip_reason})"
-            geom_type = "line" if result.polyline else ("area" if result.polygon else
-                        ("point" if result.points else "none"))
+            geom_type = ("lines" if result.polylines else
+                        ("line" if result.polyline else ("area" if result.polygon else
+                        ("point" if result.points else "none"))))
 
             extra = ""
             if result.linked_to:
@@ -352,14 +356,26 @@ class PlacementEngine:
         if result.polyline and len(result.polyline) >= 2:
             segments = clip_polyline(result.polyline, clip_bounds)
             if segments:
-                # 选择最长的裁剪段
                 best = max(segments, key=lambda s: polyline_length(s))
                 if best != result.polyline:
                     result.polyline = best
                     changed = True
             else:
-                # 全部在边界外, clamp 到中心点
                 result.polyline = clamp_pts(result.polyline)
+                changed = True
+
+        # Polylines: 逐条裁剪
+        if result.polylines:
+            new_polylines = []
+            for pl in result.polylines:
+                if len(pl) < 2:
+                    continue
+                segments = clip_polyline(pl, clip_bounds)
+                for seg in (segments or []):
+                    if len(seg) >= 2:
+                        new_polylines.append(seg)
+            if new_polylines and new_polylines != result.polylines:
+                result.polylines = new_polylines
                 changed = True
 
         if result.polygon:
@@ -379,6 +395,46 @@ class PlacementEngine:
             if coords and len(coords) >= 1:
                 mid = len(coords) // 2
                 result.label_anchor = coords[mid]
+
+        return result
+
+    def _avoid_buildings(self, result: PlacementResult) -> PlacementResult:
+        """确保措施不与建筑重叠。临时苫盖豁免。"""
+        if result.skipped:
+            return result
+        if "苫盖" in (result.measure_name or ""):
+            return result  # 临时苫盖豁免
+
+        from src.geo_utils import point_in_polygon, polygon_centroid
+
+        buildings = []
+        for z in self._model.zones.values():
+            for obs in z.obstacles:
+                if "building" in obs.label and len(obs.polygon) >= 3:
+                    buildings.append(obs.polygon)
+        if not buildings:
+            return result
+
+        # 点状: 落在建筑内则推到建筑外
+        if result.points:
+            new_pts = []
+            for pt in result.points:
+                inside = False
+                for bpoly in buildings:
+                    if point_in_polygon(pt, bpoly):
+                        inside = True
+                        bc = polygon_centroid(bpoly)
+                        dx = pt[0] - bc[0]
+                        dy = pt[1] - bc[1]
+                        d = math.hypot(dx, dy)
+                        if d < 1e-6:
+                            dx, dy = 5.0, 0.0
+                        else:
+                            dx, dy = dx / d * 8.0, dy / d * 8.0
+                        pt = (bc[0] + dx, bc[1] + dy)
+                        break
+                new_pts.append(pt)
+            result.points = new_pts
 
         return result
 
@@ -486,6 +542,11 @@ class PlacementEngine:
             )
             if result.polyline:
                 shifted.polyline = [(p[0] + sx, p[1] + sy) for p in result.polyline]
+            if result.polylines:
+                shifted.polylines = [
+                    [(p[0] + sx, p[1] + sy) for p in pl]
+                    for pl in result.polylines
+                ]
             if result.polygon:
                 shifted.polygon = [(p[0] + sx, p[1] + sy) for p in result.polygon]
             if result.points:
