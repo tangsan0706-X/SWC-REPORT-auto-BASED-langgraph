@@ -62,12 +62,37 @@ class GeometryClipper:
         vec = slope_direction_vector(terrain.slope_direction) if terrain.slope_direction else None
         return vec, terrain.avg_slope_pct, terrain.elevation_points
 
+    def _filter_edges_inside_boundary(self, edges: List[EdgeFeature]) -> List[EdgeFeature]:
+        """过滤只保留中点在项目红线内的边线。
+
+        分区多边形常远大于红线 (凸包扩展), 导致外围道路被分配到分区。
+        此过滤确保排水沟等措施只沿红线内的道路布置。
+        """
+        boundary = self._model.boundary
+        if not boundary or not boundary.polyline or len(boundary.polyline) < 3:
+            return edges
+        bp = boundary.polyline
+        result = []
+        for edge in edges:
+            if len(edge.polyline) < 2:
+                continue
+            mid = edge.polyline[len(edge.polyline) // 2]
+            if point_in_polygon(mid, bp):
+                result.append(edge)
+        return result
+
     def _find_edge_by_direction(self, zone: ZoneModel, target_vec: tuple) -> Optional[EdgeFeature]:
-        """选与目标方向最对齐的边。"""
+        """选与目标方向最对齐的边。优先选红线内的边。"""
         best_edge = None
         best_score = -1.0
 
         candidates = list(zone.edges) if zone.edges else []
+
+        # 优先过滤到红线内的边; 如果没有, 回退到全部候选
+        internal = self._filter_edges_inside_boundary(candidates)
+        if internal:
+            candidates = internal
+
         # 也加入分区多边形边作为候选
         if not candidates and len(zone.polygon) >= 3:
             from src.site_model import SourceTag, SourceType
@@ -307,14 +332,18 @@ class GeometryClipper:
         return result
 
     def _find_best_edge(self, zone: ZoneModel, feature_type: str) -> Optional[EdgeFeature]:
-        """找分区内最匹配的边线。"""
-        matching = [e for e in zone.edges if e.feature_type == feature_type]
+        """找分区内最匹配的边线。优先选红线内的边。"""
+        # 先过滤到红线内
+        internal = self._filter_edges_inside_boundary(zone.edges)
+        pool = internal if internal else list(zone.edges)
+
+        matching = [e for e in pool if e.feature_type == feature_type]
         if matching:
             matching.sort(key=lambda e: e.length_m, reverse=True)
             return matching[0]
 
-        if zone.edges:
-            return max(zone.edges, key=lambda e: e.length_m)
+        if pool:
+            return max(pool, key=lambda e: e.length_m)
 
         return None
 

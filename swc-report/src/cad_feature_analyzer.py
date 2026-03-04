@@ -712,20 +712,24 @@ class CadFeatureAnalyzer:
             return user_boundary
 
         # Level 0.5: 扩展图层名搜索 (搜索全部实体, 不限 boundary 类别)
+        # 图层名已经是强信号 (如 P-LIMT-BUID), 用面积阈值替代 span 验证
+        # (span 验证对大坐标偏移的 DXF 无效, 因为 outlier 拉大 overall_span)
         layer_boundary = self._extract_boundary_by_layer()
         if layer_boundary and len(layer_boundary) >= 3:
-            if self._boundary_is_valid(layer_boundary, overall_span):
-                if self._boundary_contains_most_entities(layer_boundary):
-                    logger.info(f"边界提取 Level 0.5: 图层名匹配非矩形多边形 ({len(layer_boundary)} pts)")
-                    return layer_boundary
+            area = _shoelace_area(layer_boundary)
+            if area >= 1000:  # 面积 >= 1000m² 即认为是真实边界, 非标记符号
+                logger.info(f"边界提取 Level 0.5: 图层名匹配非矩形多边形 "
+                            f"({len(layer_boundary)} pts, area={area:.0f}m²)")
+                return layer_boundary
 
         # Level 0.7: 颜色过滤 (DXF color index 1 = 红色)
         color_boundary = self._extract_boundary_by_color()
         if color_boundary and len(color_boundary) >= 3:
-            if self._boundary_is_valid(color_boundary, overall_span):
-                if self._boundary_contains_most_entities(color_boundary):
-                    logger.info(f"边界提取 Level 0.7: 红色非矩形多边形 ({len(color_boundary)} pts)")
-                    return color_boundary
+            area = _shoelace_area(color_boundary)
+            if area >= 1000:
+                logger.info(f"边界提取 Level 0.7: 红色非矩形多边形 "
+                            f"({len(color_boundary)} pts, area={area:.0f}m²)")
+                return color_boundary
 
         # Level 0.8: 开放折线端到端拼接 (如 P-LIMT 图层多段红线)
         joined_boundary = self._extract_boundary_by_joining_open_polylines()
@@ -843,6 +847,7 @@ class CadFeatureAnalyzer:
         BOUNDARY_LAYER_KEYWORDS = [
             "红线", "redline", "用地", "边界", "boundary", "bound",
             "scope", "范围", "site", "规划", "建设用地",
+            "limt", "limit",  # P-LIMT, P-LIMT-BUID 等图层
         ]
         candidates = []
         for ent in self._entities:
