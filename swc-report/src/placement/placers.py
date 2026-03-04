@@ -81,21 +81,47 @@ class GeometryClipper:
                 result.append(edge)
         return result
 
+    def _get_internal_edges_near_zone(self, zone: ZoneModel) -> List[EdgeFeature]:
+        """获取红线内、离分区质心最近的道路边线。
+
+        当分区自己的 edges 全在红线外时 (如绿化区凸包远超红线),
+        搜索全局 global_edges 中红线内的道路, 按距分区质心距离排序。
+        """
+        boundary = self._model.boundary
+        if not boundary or not boundary.polyline or len(boundary.polyline) < 3:
+            return []
+        bp = boundary.polyline
+        cx, cy = zone.centroid
+
+        internal = []
+        for edge in self._model.global_edges:
+            if edge.feature_type != "road_edge" or len(edge.polyline) < 2:
+                continue
+            mid = edge.polyline[len(edge.polyline) // 2]
+            if point_in_polygon(mid, bp):
+                d = dist(mid, (cx, cy))
+                internal.append((d, edge))
+
+        # 按距离排序, 取最近的 20 条
+        internal.sort(key=lambda x: x[0])
+        return [e for _, e in internal[:20]]
+
     def _find_edge_by_direction(self, zone: ZoneModel, target_vec: tuple) -> Optional[EdgeFeature]:
         """选与目标方向最对齐的边。优先选红线内的边。"""
-        best_edge = None
-        best_score = -1.0
-
         candidates = list(zone.edges) if zone.edges else []
 
-        # 优先过滤到红线内的边; 如果没有, 回退到全部候选
+        # 优先过滤到红线内的边
         internal = self._filter_edges_inside_boundary(candidates)
         if internal:
             candidates = internal
+        else:
+            # 分区自己没有红线内道路 → 搜索全局红线内道路
+            nearby = self._get_internal_edges_near_zone(zone)
+            if nearby:
+                candidates = nearby
 
-        # 也加入分区多边形边作为候选
+        # 也加入分区多边形边作为候选 (最后回退)
         if not candidates and len(zone.polygon) >= 3:
-            from src.site_model import SourceTag, SourceType
             for p1, p2 in polygon_edges(zone.polygon):
                 edge_len = dist(p1, p2)
                 if edge_len > 1.0:
@@ -104,6 +130,8 @@ class GeometryClipper:
                         length_m=edge_len, source=None,
                     ))
 
+        best_edge = None
+        best_score = -1.0
         for edge in candidates:
             if len(edge.polyline) < 2:
                 continue
@@ -119,6 +147,17 @@ class GeometryClipper:
                 best_edge = edge
 
         return best_edge
+
+    def _get_clip_bbox(self, zone: ZoneModel) -> Tuple[float, float, float, float]:
+        """获取裁剪 bbox: 优先用 boundary bbox (红线内道路可能不在 zone.bbox 内)。"""
+        boundary = self._model.boundary
+        if boundary and boundary.bbox:
+            # 取 zone.bbox 和 boundary.bbox 的并集
+            zb = zone.bbox
+            bb = boundary.bbox
+            return (min(zb[0], bb[0]), min(zb[1], bb[1]),
+                    max(zb[2], bb[2]), max(zb[3], bb[3]))
+        return zone.bbox
 
     def _edge_follow(self, zone: ZoneModel, name: str, **kw) -> PlacementResult:
         """沿分区边线偏移布置 (排水沟/截水沟)。坡向感知。"""
@@ -142,7 +181,8 @@ class GeometryClipper:
         if edge and len(edge.polyline) >= 2:
             offset_pts = offset_polyline(edge.polyline, 2.0, side="left")
             if offset_pts and len(offset_pts) >= 2:
-                segments = clip_polyline(offset_pts, zone.bbox)
+                clip_bbox = self._get_clip_bbox(zone)
+                segments = clip_polyline(offset_pts, clip_bbox)
                 if segments:
                     result.polyline = segments[0]
                     result.label_anchor = result.polyline[len(result.polyline) // 2]
@@ -335,6 +375,9 @@ class GeometryClipper:
         """找分区内最匹配的边线。优先选红线内的边。"""
         # 先过滤到红线内
         internal = self._filter_edges_inside_boundary(zone.edges)
+        if not internal:
+            # 分区自己没有红线内道路 → 搜索全局红线内道路
+            internal = self._get_internal_edges_near_zone(zone)
         pool = internal if internal else list(zone.edges)
 
         matching = [e for e in pool if e.feature_type == feature_type]
@@ -383,7 +426,8 @@ def place_drainage_ditch(
             offset_dist = ditch_info.get("width", 0.4) / 2 + 1.0
         offset_pts = offset_polyline(edge.polyline, offset_dist, side="left")
         if offset_pts and len(offset_pts) >= 2:
-            segments = clip_polyline(offset_pts, zone.bbox)
+            clip_bbox = clipper._get_clip_bbox(zone)
+            segments = clip_polyline(offset_pts, clip_bbox)
             if segments:
                 result.polyline = segments[0]
                 result.label_anchor = result.polyline[len(result.polyline) // 2]
@@ -453,7 +497,8 @@ def place_intercept_ditch(
             offset_dist = ditch_info.get("width", 0.4) / 2 + 1.0
         offset_pts = offset_polyline(edge.polyline, offset_dist, side=side)
         if offset_pts and len(offset_pts) >= 2:
-            segments = clip_polyline(offset_pts, zone.bbox)
+            clip_bbox = clipper._get_clip_bbox(zone)
+            segments = clip_polyline(offset_pts, clip_bbox)
             if segments:
                 result.polyline = segments[0]
                 result.label_anchor = result.polyline[len(result.polyline) // 2]
